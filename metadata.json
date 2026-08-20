@@ -1,0 +1,6 @@
+{
+  "name": "SentinelCare",
+  "description": "AI-powered IoT elderly-care monitoring command center with 3D digital twin, predictive mobility intelligence, real-time fall detection, and smart pill verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
