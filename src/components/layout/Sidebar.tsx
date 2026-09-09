@@ -15,7 +15,8 @@ import {
   HeartPulse,
   Flame,
   PhoneCall,
-  UserCheck
+  UserCheck,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -31,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen,
   setIsMobileOpen
 }) => {
-  const { activeTab, setActiveTab, alerts, isEmergencyActive, simulateFallEvent, selectedPatient } = useDashboard();
+  const { activeTab, setActiveTab, alerts, isEmergencyActive, simulateFallEvent, selectedPatient, logout, currentUser } = useDashboard();
 
   const unresolvedAlertsCount = alerts.filter(a => !a.isResolved && (a.severity === 'critical' || a.severity === 'warning')).length;
 
@@ -182,15 +183,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!isCollapsed && <span>SIMULATE FALL (DEMO)</span>}
           </button>
 
-          {/* Quick System Badge */}
-          {!isCollapsed && (
-            <div className="px-2 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-[10px] font-mono text-slate-400 flex items-center justify-between">
-              <span className="flex items-center gap-1 text-emerald-400">
-                <Radio className="w-3 h-3 text-emerald-400" />
-                MQTT 8ms
-              </span>
-              <span>v2.4.1</span>
+          {/* Quick System Badge & Logout */}
+          {!isCollapsed ? (
+            <div className="space-y-1.5">
+              <div className="px-2 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-[10px] font-mono text-slate-400 flex items-center justify-between">
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <Radio className="w-3 h-3 text-emerald-400" />
+                  MQTT 8ms
+                </span>
+                <span>User: {currentUser || '1'}</span>
+              </div>
+
+              <button
+                onClick={logout}
+                className="w-full py-2 px-2.5 rounded-xl bg-slate-900/60 hover:bg-red-950/30 text-slate-400 hover:text-red-300 border border-slate-800 hover:border-red-500/40 text-xs font-mono flex items-center justify-center gap-2 transition"
+                title="Log out of terminal"
+              >
+                <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-red-400" />
+                <span>Sign Out</span>
+              </button>
             </div>
+          ) : (
+            <button
+              onClick={logout}
+              className="w-full p-2 rounded-xl bg-slate-900/60 hover:bg-red-950/30 text-slate-400 hover:text-red-300 border border-slate-800 hover:border-red-500/40 flex items-center justify-center transition"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           )}
         </div>
       </aside>

@@ -70,6 +70,12 @@ interface DashboardContextType {
   setIsSearchOpen: (open: boolean) => void;
   isNotificationCenterOpen: boolean;
   setIsNotificationCenterOpen: (open: boolean) => void;
+
+  // Authentication
+  isAuthenticated: boolean;
+  currentUser: string | null;
+  login: (username: string, password: string) => boolean;
+  logout: () => void;
   
   // Toasts
   toasts: ToastMessage[];
@@ -107,6 +113,69 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
   
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const addToast = useCallback((title: string, message: string, type: ToastMessage['type'] = 'info') => {
+    const newToast: ToastMessage = {
+      id: 'toast-' + Math.random().toString(36).substr(2, 9),
+      title,
+      message,
+      type,
+      timestamp: Date.now()
+    };
+    setToasts(prev => [newToast, ...prev.slice(0, 4)]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== newToast.id));
+    }, 4500);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+  
+  // Authentication State (Default: check localStorage)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sentinel_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [currentUser, setCurrentUser] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('sentinel_user') || (localStorage.getItem('sentinel_auth') === 'true' ? '1' : null);
+    } catch {
+      return null;
+    }
+  });
+
+  const login = useCallback((username: string, password: string): boolean => {
+    if (username.trim() === '1' && password === '1') {
+      setIsAuthenticated(true);
+      setCurrentUser(username.trim());
+      try {
+        localStorage.setItem('sentinel_auth', 'true');
+        localStorage.setItem('sentinel_user', username.trim());
+      } catch (e) {
+        console.error(e);
+      }
+      addToast('Terminal Unlocked', 'Authenticated as Operator (ID: 1). Welcome to SentinelCare.', 'success');
+      return true;
+    }
+    return false;
+  }, [addToast]);
+
+  const logout = useCallback(() => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('sentinel_auth');
+      localStorage.removeItem('sentinel_user');
+    } catch (e) {
+      console.error(e);
+    }
+    addToast('Session Terminated', 'You have been safely logged out of SentinelCare.', 'info');
+  }, [addToast]);
   
   // Telemetry buffer
   const [telemetry, setTelemetry] = useState<SensorTelemetry>({
@@ -127,24 +196,6 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [telemetryHistory, setTelemetryHistory] = useState<SensorTelemetry[]>([]);
   const [systemTime, setSystemTime] = useState<string>('');
   const [lastSyncSecondsAgo, setLastSyncSecondsAgo] = useState<number>(2);
-
-  const addToast = useCallback((title: string, message: string, type: ToastMessage['type'] = 'info') => {
-    const newToast: ToastMessage = {
-      id: 'toast-' + Math.random().toString(36).substr(2, 9),
-      title,
-      message,
-      type,
-      timestamp: Date.now()
-    };
-    setToasts(prev => [newToast, ...prev.slice(0, 4)]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== newToast.id));
-    }, 4500);
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
 
   // System time ticker
   useEffect(() => {
@@ -510,7 +561,11 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       addToast,
       removeToast,
       systemTime,
-      lastSyncSecondsAgo
+      lastSyncSecondsAgo,
+      isAuthenticated,
+      currentUser,
+      login,
+      logout
     }}>
       {children}
     </DashboardContext.Provider>

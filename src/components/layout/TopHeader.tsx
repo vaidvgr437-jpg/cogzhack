@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   WifiOff,
-  Activity
+  Activity,
+  LogOut
 } from 'lucide-react';
 
 interface TopHeaderProps {
@@ -35,7 +36,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
     simulateFallEvent,
     setIsSearchOpen,
     isNotificationCenterOpen,
-    setIsNotificationCenterOpen
+    setIsNotificationCenterOpen,
+    currentUser,
+    logout
   } = useDashboard();
 
   const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
@@ -66,7 +69,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="text-xs sm:text-sm font-semibold text-slate-200">
-                Good afternoon, <span className="text-white font-bold">Rahul</span>
+                Operator <span className="text-cyan-400 font-bold font-mono">#{currentUser || '1'}</span>
               </span>
               <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                 Senior Caregiver
@@ -184,6 +187,16 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
           >
             <ShieldAlert className="w-4 h-4" />
             <span>SOS</span>
+          </button>
+
+          {/* Log Out Button */}
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-800 hover:border-red-500/40 text-xs font-mono transition"
+            title="Log Out (Return to Login Interface)"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
       </div>

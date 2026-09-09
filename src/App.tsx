@@ -19,11 +19,21 @@ import { MobilityAIPage } from './pages/MobilityAIPage';
 import { MedicationPage } from './pages/MedicationPage';
 import { AlertsIncidentsPage } from './pages/AlertsIncidentsPage';
 import { DevicesSettingsPage } from './pages/DevicesSettingsPage';
+import { LoginPage } from './pages/LoginPage';
 
 const MainLayout: React.FC = () => {
-  const { activeTab } = useDashboard();
+  const { activeTab, isAuthenticated } = useDashboard();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <LoginPage />
+        <ToastContainer />
+      </>
+    );
+  }
 
   const renderActiveTab = () => {
     switch (activeTab) {
