@@ -19,17 +19,28 @@ import { MobilityAIPage } from './pages/MobilityAIPage';
 import { MedicationPage } from './pages/MedicationPage';
 import { AlertsIncidentsPage } from './pages/AlertsIncidentsPage';
 import { DevicesSettingsPage } from './pages/DevicesSettingsPage';
-import { LoginPage } from './pages/LoginPage';
+import { AuthPage } from './pages/AuthPage';
+import { PatientSetupPage } from './pages/PatientSetupPage';
 
 const MainLayout: React.FC = () => {
-  const { activeTab, isAuthenticated } = useDashboard();
+  const { activeTab, isAuthenticated, currentRoute, navigateTo } = useDashboard();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   if (!isAuthenticated) {
     return (
       <>
-        <LoginPage />
+        <AuthPage initialTab={currentRoute === '/signup' ? 'signup' : 'signin'} />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  // Dedicated Patient Setup screen
+  if (currentRoute === '/patient/setup') {
+    return (
+      <>
+        <PatientSetupPage onDone={() => navigateTo('/dashboard')} />
         <ToastContainer />
       </>
     );

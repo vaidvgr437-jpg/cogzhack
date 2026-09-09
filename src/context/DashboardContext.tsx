@@ -35,6 +35,12 @@ interface DashboardContextType {
   selectedPatient: ElderlyPerson;
   setSelectedPatient: (patient: ElderlyPerson) => void;
   patientsList: ElderlyPerson[];
+  setPatientsList: React.Dispatch<React.SetStateAction<ElderlyPerson[]>>;
+  addPatient: (patient: ElderlyPerson) => void;
+
+  // Routing
+  currentRoute: string;
+  navigateTo: (route: string) => void;
   
   // Scenario
   activeScenario: DemoScenario;
@@ -74,7 +80,9 @@ interface DashboardContextType {
   // Authentication
   isAuthenticated: boolean;
   currentUser: string | null;
-  login: (username: string, password: string) => boolean;
+  currentUserEmail: string | null;
+  login: (emailOrUsername: string, password: string) => boolean;
+  signup: (fullName: string, email: string, phone: string, password: string) => boolean;
   logout: () => void;
   
   // Toasts
@@ -91,8 +99,34 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<NavigationTab>('overview');
-  const [selectedPatient, setSelectedPatient] = useState<ElderlyPerson>(PRIMARY_PATIENT);
-  const [patientsList] = useState<ElderlyPerson[]>(PATIENTS_LIST);
+  
+  // Persistent Patients List
+  const [patientsList, setPatientsList] = useState<ElderlyPerson[]>(() => {
+    try {
+      const saved = localStorage.getItem('sentinel_patients');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return PATIENTS_LIST;
+  });
+
+  const [selectedPatient, setSelectedPatient] = useState<ElderlyPerson>(() => {
+    try {
+      const saved = localStorage.getItem('sentinel_patients');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return PRIMARY_PATIENT;
+  });
+
   const [activeScenario, setActiveScenario] = useState<DemoScenario>('normal');
   
   const [mobilityMetrics, setMobilityMetrics] = useState<MobilityMetrics>(INITIAL_MOBILITY_METRICS);
@@ -143,39 +177,168 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const [currentUser, setCurrentUser] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('sentinel_user') || (localStorage.getItem('sentinel_auth') === 'true' ? '1' : null);
+      return localStorage.getItem('sentinel_user') || (localStorage.getItem('sentinel_auth') === 'true' ? 'Rahul Verma' : null);
     } catch {
       return null;
     }
   });
 
-  const login = useCallback((username: string, password: string): boolean => {
-    if (username.trim() === '1' && password === '1') {
-      setIsAuthenticated(true);
-      setCurrentUser(username.trim());
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('sentinel_user_email') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Routing State
+  const [currentRoute, setCurrentRoute] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path === '/patient/setup' || path === '/auth' || path === '/dashboard') {
+        return path;
+      }
+    }
+    try {
+      return localStorage.getItem('sentinel_auth') === 'true' ? '/dashboard' : '/auth';
+    } catch {
+      return '/auth';
+    }
+  });
+
+  const navigateTo = useCallback((route: string) => {
+    setCurrentRoute(route);
+    if (typeof window !== 'undefined' && window.history && window.history.pushState) {
+      window.history.pushState({}, '', route);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        setCurrentRoute(window.location.pathname || '/dashboard');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const addPatient = useCallback((newPatient: ElderlyPerson) => {
+    setPatientsList(prev => {
+      const updated = [newPatient, ...prev];
       try {
-        localStorage.setItem('sentinel_auth', 'true');
-        localStorage.setItem('sentinel_user', username.trim());
+        localStorage.setItem('sentinel_patients', JSON.stringify(updated));
       } catch (e) {
         console.error(e);
       }
-      addToast('Terminal Unlocked', 'Authenticated as Operator (ID: 1). Welcome to SentinelCare.', 'success');
+      return updated;
+    });
+    setSelectedPatient(newPatient);
+    addToast('Patient Registered', `${newPatient.name} has been enrolled in SentinelCare monitoring.`, 'success');
+  }, [addToast]);
+
+  const login = useCallback((emailOrUsername: string, password: string): boolean => {
+    const cleanUser = emailOrUsername.trim();
+    
+    // Check demo credentials (username "1" / password "1", or admin email)
+    if (
+      (cleanUser === '1' && password === '1') || 
+      (cleanUser.toLowerCase() === 'admin@sentinelcare.io' && password === '1') || 
+      (cleanUser.toLowerCase() === 'rahul@sentinelcare.io' && password === '1') ||
+      (cleanUser.toLowerCase() === 'caregiver@sentinelcare.io' && (password === '1' || password === 'password'))
+    ) {
+      setIsAuthenticated(true);
+      const displayName = cleanUser === '1' ? 'Rahul Verma' : cleanUser.split('@')[0];
+      const email = cleanUser === '1' ? 'rahul@sentinelcare.io' : cleanUser;
+      setCurrentUser(displayName);
+      setCurrentUserEmail(email);
+      try {
+        localStorage.setItem('sentinel_auth', 'true');
+        localStorage.setItem('sentinel_user', displayName);
+        localStorage.setItem('sentinel_user_email', email);
+      } catch (e) {
+        console.error(e);
+      }
+      addToast('Welcome to SentinelCare', 'Signed in successfully as Senior Caregiver.', 'success');
+      navigateTo('/dashboard');
       return true;
     }
+
+    // Check registered accounts in localStorage
+    try {
+      const savedAccounts = localStorage.getItem('sentinel_registered_accounts');
+      if (savedAccounts) {
+        const accounts = JSON.parse(savedAccounts);
+        const match = accounts.find((acc: any) => 
+          (acc.email.toLowerCase() === cleanUser.toLowerCase() || acc.phone === cleanUser) && acc.password === password
+        );
+        if (match) {
+          setIsAuthenticated(true);
+          setCurrentUser(match.fullName || match.email.split('@')[0]);
+          setCurrentUserEmail(match.email);
+          localStorage.setItem('sentinel_auth', 'true');
+          localStorage.setItem('sentinel_user', match.fullName);
+          localStorage.setItem('sentinel_user_email', match.email);
+          addToast('Welcome back', `Signed in as ${match.fullName}.`, 'success');
+          navigateTo('/dashboard');
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
     return false;
-  }, [addToast]);
+  }, [addToast, navigateTo]);
+
+  const signup = useCallback((fullName: string, email: string, phone: string, password: string): boolean => {
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim();
+    const cleanPhone = phone.trim();
+
+    if (!cleanName || !cleanEmail || !password) {
+      return false;
+    }
+
+    try {
+      const savedAccounts = localStorage.getItem('sentinel_registered_accounts');
+      const accounts = savedAccounts ? JSON.parse(savedAccounts) : [];
+      const newAccount = { fullName: cleanName, email: cleanEmail, phone: cleanPhone, password, createdAt: new Date().toISOString() };
+      accounts.push(newAccount);
+      localStorage.setItem('sentinel_registered_accounts', JSON.stringify(accounts));
+      
+      setIsAuthenticated(true);
+      setCurrentUser(cleanName);
+      setCurrentUserEmail(cleanEmail);
+      localStorage.setItem('sentinel_auth', 'true');
+      localStorage.setItem('sentinel_user', cleanName);
+      localStorage.setItem('sentinel_user_email', cleanEmail);
+    } catch (e) {
+      console.error(e);
+      setIsAuthenticated(true);
+      setCurrentUser(cleanName);
+      setCurrentUserEmail(cleanEmail);
+    }
+
+    addToast('Account Created', `Welcome to SentinelCare, ${cleanName}! Please set up your first patient.`, 'success');
+    navigateTo('/patient/setup');
+    return true;
+  }, [addToast, navigateTo]);
 
   const logout = useCallback(() => {
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setCurrentUserEmail(null);
     try {
       localStorage.removeItem('sentinel_auth');
       localStorage.removeItem('sentinel_user');
+      localStorage.removeItem('sentinel_user_email');
     } catch (e) {
       console.error(e);
     }
-    addToast('Session Terminated', 'You have been safely logged out of SentinelCare.', 'info');
-  }, [addToast]);
+    addToast('Session Ended', 'You have been safely logged out.', 'info');
+    navigateTo('/auth');
+  }, [addToast, navigateTo]);
   
   // Telemetry buffer
   const [telemetry, setTelemetry] = useState<SensorTelemetry>({
@@ -534,6 +697,10 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       selectedPatient,
       setSelectedPatient,
       patientsList,
+      setPatientsList,
+      addPatient,
+      currentRoute,
+      navigateTo,
       activeScenario,
       setScenario,
       mobilityMetrics,
@@ -564,7 +731,9 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       lastSyncSecondsAgo,
       isAuthenticated,
       currentUser,
+      currentUserEmail,
       login,
+      signup,
       logout
     }}>
       {children}

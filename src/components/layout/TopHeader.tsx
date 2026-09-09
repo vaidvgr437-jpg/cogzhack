@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   WifiOff,
   Activity,
-  LogOut
+  LogOut,
+  Plus
 } from 'lucide-react';
 
 interface TopHeaderProps {
@@ -27,6 +28,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
     selectedPatient,
     setSelectedPatient,
     patientsList,
+    navigateTo,
     systemTime,
     lastSyncSecondsAgo,
     activeScenario,
@@ -93,54 +95,85 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
           </div>
         </div>
 
-        {/* Center: Elderly Person Selector Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setIsPatientDropdownOpen(!isPatientDropdownOpen)}
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-cyan-500/30 text-xs text-white shadow-sm transition"
-          >
-            <img
-              src={selectedPatient.avatar}
-              alt={selectedPatient.name}
-              className="w-6 h-6 rounded-lg object-cover border border-cyan-400/40"
-            />
-            <div className="flex flex-col text-left">
-              <span className="font-bold leading-tight">{selectedPatient.name}</span>
-              <span className="text-[10px] font-mono text-cyan-400 leading-tight">{selectedPatient.room}</span>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
-          </button>
+        {/* Center: Elderly Person Selector Dropdown & + Add Patient Button */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button
+              id="patient-selector-btn"
+              onClick={() => setIsPatientDropdownOpen(!isPatientDropdownOpen)}
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-cyan-500/30 text-xs text-white shadow-sm transition"
+            >
+              <img
+                src={selectedPatient.avatar}
+                alt={selectedPatient.name}
+                className="w-6 h-6 rounded-lg object-cover border border-cyan-400/40"
+              />
+              <div className="flex flex-col text-left">
+                <span className="font-bold leading-tight">{selectedPatient.name}</span>
+                <span className="text-[10px] font-mono text-cyan-400 leading-tight">{selectedPatient.room}</span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
+            </button>
 
-          {/* Dropdown Menu */}
-          {isPatientDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-slate-900/95 border border-cyan-500/30 backdrop-blur-xl shadow-2xl p-2 z-50 animate-fadeIn">
-              <div className="px-3 py-1.5 text-[10px] font-mono text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                Assigned Elderly Residents
-              </div>
-              <div className="space-y-1 mt-1">
-                {patientsList.map((p) => (
+            {/* Dropdown Menu */}
+            {isPatientDropdownOpen && (
+              <div className="absolute left-0 sm:right-0 mt-2 w-64 rounded-2xl bg-slate-900/95 border border-cyan-500/30 backdrop-blur-xl shadow-2xl p-2 z-50 animate-fadeIn">
+                <div className="px-3 py-1.5 text-[10px] font-mono text-slate-400 uppercase tracking-wider border-b border-slate-800 flex justify-between items-center">
+                  <span>Assigned Elderly Residents</span>
+                  <span className="text-cyan-400 font-bold">{patientsList.length}</span>
+                </div>
+                <div className="space-y-1 mt-1 max-h-56 overflow-y-auto">
+                  {patientsList.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setSelectedPatient(p);
+                        setIsPatientDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left text-xs transition ${
+                        selectedPatient.id === p.id
+                          ? 'bg-cyan-500/20 text-cyan-200 font-bold border border-cyan-500/40'
+                          : 'text-slate-300 hover:bg-slate-800/60'
+                      }`}
+                    >
+                      <img src={p.avatar} alt={p.name} className="w-7 h-7 rounded-lg object-cover" />
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="truncate">{p.name} ({p.age}y)</span>
+                        <span className="text-[10px] font-mono text-slate-400 truncate">{p.room}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Dropdown Footer: Add Patient Action */}
+                <div className="pt-2 mt-1 border-t border-slate-800">
                   <button
-                    key={p.id}
+                    type="button"
                     onClick={() => {
-                      setSelectedPatient(p);
                       setIsPatientDropdownOpen(false);
+                      navigateTo('/patient/setup');
                     }}
-                    className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left text-xs transition ${
-                      selectedPatient.id === p.id
-                        ? 'bg-cyan-500/20 text-cyan-200 font-bold border border-cyan-500/40'
-                        : 'text-slate-300 hover:bg-slate-800/60'
-                    }`}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold transition"
                   >
-                    <img src={p.avatar} alt={p.name} className="w-7 h-7 rounded-lg object-cover" />
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="truncate">{p.name} ({p.age}y)</span>
-                      <span className="text-[10px] font-mono text-slate-400 truncate">{p.room}</span>
-                    </div>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add Patient</span>
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Dedicated + Add Patient Button near selector */}
+          <button
+            id="add-patient-header-btn"
+            type="button"
+            onClick={() => navigateTo('/patient/setup')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-mono text-cyan-300 font-bold shadow-sm transition hover:scale-105 active:scale-95"
+            title="Add a new patient to SentinelCare"
+          >
+            <Plus className="w-3.5 h-3.5 text-cyan-400 stroke-[2.5]" />
+            <span className="hidden sm:inline">+ Add Patient</span>
+          </button>
         </div>
 
         {/* Right Actions: Clock, Search, Notification Bell, Emergency Trigger */}

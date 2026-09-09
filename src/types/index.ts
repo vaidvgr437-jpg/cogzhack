@@ -8,10 +8,20 @@ export type NavigationTab = 'overview' | 'monitoring' | 'mobility' | 'medication
 export interface ElderlyPerson {
   id: string;
   name: string;
+  preferredName?: string;
+  dateOfBirth?: string;
   age: number;
   gender: string;
   room: string;
   avatar: string;
+  phoneNumber?: string;
+  emailAddress?: string;
+  address?: string;
+  primaryCaregiver?: {
+    name: string;
+    phone: string;
+    relationship?: string;
+  };
   emergencyContact: {
     name: string;
     relationship: string;
@@ -19,6 +29,17 @@ export interface ElderlyPerson {
   };
   primaryDoctor: string;
   medicalConditions: string[];
+  mobilityStatus?: 'Independent' | 'Assisted' | 'Limited Mobility';
+  careNotes?: string;
+  monitoringStatus?: string;
+  connectedDevices?: {
+    wristbandId?: string;
+    wristbandConnected?: boolean;
+    dispenserId?: string;
+    dispenserConnected?: boolean;
+    hubId?: string;
+    hubConnected?: boolean;
+  };
   baselineMobilityScore: number;
   currentMobilityScore: number;
   medicationAdherence: number;
