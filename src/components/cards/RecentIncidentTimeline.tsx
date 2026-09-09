@@ -404,7 +404,7 @@ export const RecentIncidentTimeline: React.FC<RecentIncidentTimelineProps> = ({
                       <FileText className="w-3.5 h-3.5 text-cyan-400" />
                       <div>
                         <div className="font-bold text-white group-hover:text-emerald-300">Full EHR Clinical Log</div>
-                        <div className="text-[10px] text-slate-400">Falls, mobility & medication ({alerts.length} records)</div>
+                        <div className="text-[10px] text-slate-400">Falls, mobility & emergency alerts ({alerts.length} records)</div>
                       </div>
                     </div>
                   </button>

@@ -21,7 +21,13 @@ import {
   Trash2,
   Plus,
   Users,
-  UserMinus
+  UserMinus,
+  PhoneCall,
+  MessageSquare,
+  Bell,
+  Clock,
+  Settings,
+  Send
 } from 'lucide-react';
 import { DemoScenario } from '../types';
 
@@ -36,11 +42,38 @@ export const DevicesSettingsPage: React.FC = () => {
     addToast,
     activeScenario, 
     setScenario, 
-    simulateFallEvent 
+    simulateFallEvent,
+    dispatchConfig,
+    updateDispatchConfig,
+    setIsDispatchSettingsOpen,
+    triggerTestSms,
+    dispatchedSmsList
   } = useDashboard();
+
+  const [mobileInput, setMobileInput] = useState(dispatchConfig.mobileNumber);
+  const [contactNameInput, setContactNameInput] = useState(dispatchConfig.contactName);
+  const [relationInput, setRelationInput] = useState(dispatchConfig.relation);
 
   const runDeviceDiagnostics = (deviceId: string) => {
     addToast('Diagnostic Signal Sent', `Pinged device ${deviceId}. Packet loss 0%, RF link verified.`, 'success');
+  };
+
+  const handleSaveMobileSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileInput.trim()) {
+      addToast('Invalid Phone Number', 'Please enter a valid emergency contact number.', 'error');
+      return;
+    }
+    updateDispatchConfig({
+      mobileNumber: mobileInput.trim(),
+      contactName: contactNameInput.trim() || 'Primary Caregiver',
+      relation: relationInput.trim() || 'Family / Physician'
+    });
+    addToast(
+      'Emergency Mobile Number Saved',
+      `Registered ${mobileInput.trim()} for automated fall event alerts (Push, SMS, Voice Call).`,
+      'success'
+    );
   };
 
   const [fallSensitivity, setFallSensitivity] = useState<'low' | 'medium' | 'high'>('medium');
@@ -71,16 +104,9 @@ export const DevicesSettingsPage: React.FC = () => {
       color: 'text-red-400 border-red-500/40 bg-red-950/20'
     },
     {
-      id: 'missed_medication',
-      title: 'Missed Medication',
-      desc: 'Afternoon dosage untouched after 45-min grace period.',
-      icon: AlertTriangle,
-      color: 'text-amber-300 border-amber-500/40 bg-amber-950/20'
-    },
-    {
       id: 'device_offline',
       title: 'Device Offline Test',
-      desc: 'Medicine Dispenser Wi-Fi disconnected; hub triggers ping recovery.',
+      desc: 'Smart Wristband BLE link dropped; hub triggers ping recovery.',
       icon: WifiOff,
       color: 'text-slate-400 border-slate-700 bg-slate-900/40'
     }
@@ -295,71 +321,136 @@ export const DevicesSettingsPage: React.FC = () => {
             </div>
 
             <div className="pt-3 border-t border-slate-800 space-y-2">
-              <div className="text-slate-400 text-[11px]">Active Notification Channels:</div>
-              <div className="space-y-1.5">
-                <label className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 cursor-pointer">
-                  <span>Caregiver App Push Notifications</span>
-                  <input
-                    type="checkbox"
-                    checked={pushEnabled}
-                    onChange={(e) => setPushEnabled(e.target.checked)}
-                    className="accent-cyan-400 w-4 h-4"
-                  />
-                </label>
+              <div className="text-slate-400 text-[11px]">Active Fall Mode Escalation Stages:</div>
+              <div className="space-y-2 text-[11px]">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                  <span className="flex items-center gap-1.5 text-slate-300">
+                    <Bell className="w-3.5 h-3.5 text-cyan-400" />
+                    Push Notification
+                  </span>
+                  <span className="font-bold text-cyan-300">
+                    {dispatchConfig.pushEnabled ? `${dispatchConfig.pushDelaySeconds}s delay` : 'Disabled'}
+                  </span>
+                </div>
 
-                <label className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 cursor-pointer">
-                  <span>Emergency Family SMS Alerts</span>
-                  <input
-                    type="checkbox"
-                    checked={smsEnabled}
-                    onChange={(e) => setSmsEnabled(e.target.checked)}
-                    className="accent-cyan-400 w-4 h-4"
-                  />
-                </label>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                  <span className="flex items-center gap-1.5 text-slate-300">
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                    Emergency SMS
+                  </span>
+                  <span className="font-bold text-emerald-300">
+                    {dispatchConfig.smsEnabled ? `${dispatchConfig.smsDelaySeconds}s delay` : 'Disabled'}
+                  </span>
+                </div>
 
-                <label className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 cursor-pointer">
-                  <span>Automated Voice Escalation (45s+)</span>
-                  <input
-                    type="checkbox"
-                    checked={voiceCallEnabled}
-                    onChange={(e) => setVoiceCallEnabled(e.target.checked)}
-                    className="accent-cyan-400 w-4 h-4"
-                  />
-                </label>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                  <span className="flex items-center gap-1.5 text-slate-300">
+                    <PhoneCall className="w-3.5 h-3.5 text-red-400" />
+                    Voice Call Dispatch
+                  </span>
+                  <span className="font-bold text-red-300">
+                    {dispatchConfig.callEnabled ? `${dispatchConfig.callDelaySeconds}s delay` : 'Disabled'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right: Emergency Contact Card */}
-        <div className="p-5 rounded-2xl glass-panel border border-cyan-500/20 space-y-4">
-          <div className="flex items-center gap-2">
-            <Phone className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-              Emergency Contact Routing
-            </h3>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-lg font-mono">
-              AR
-            </div>
-            <div className="flex-1">
+        {/* Right: Emergency Mobile Registration & Escalation Pipeline */}
+        <div className="p-5 rounded-2xl glass-panel border border-cyan-500/20 space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-bold text-white">{selectedPatient.emergencyContact.name}</h4>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                  Primary ({selectedPatient.emergencyContact.relation})
-                </span>
+                <PhoneCall className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                  Emergency Mobile Registration & Escalation
+                </h3>
               </div>
-              <div className="text-xs font-mono text-cyan-300 mt-1">
-                {selectedPatient.emergencyContact.phone}
-              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDispatchSettingsOpen(true)}
+                className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 underline underline-offset-2"
+              >
+                <Settings className="w-3 h-3" />
+                <span>Adjust Timings</span>
+              </button>
             </div>
+
+            {/* Mobile Registration Form */}
+            <form onSubmit={handleSaveMobileSettings} className="mt-3 space-y-3">
+              <div>
+                <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                  Registered Emergency Mobile Number:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    value={mobileInput}
+                    onChange={(e) => setMobileInput(e.target.value)}
+                    placeholder="+1 (555) 911-0422"
+                    className="flex-1 px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-800 focus:border-cyan-400 text-white font-mono text-xs outline-none transition"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-xs transition"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Contact Name:</label>
+                  <input
+                    type="text"
+                    value={contactNameInput}
+                    onChange={(e) => setContactNameInput(e.target.value)}
+                    placeholder="Caregiver Name"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-white font-mono text-xs outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Relationship:</label>
+                  <input
+                    type="text"
+                    value={relationInput}
+                    onChange={(e) => setRelationInput(e.target.value)}
+                    placeholder="e.g., Family / Doctor"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-white font-mono text-xs outline-none"
+                  />
+                </div>
+              </div>
+            </form>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs font-mono text-slate-300 leading-relaxed">
-            <div className="text-slate-400 text-[10px] uppercase mb-1">Escalation Routing Rule:</div>
-            If buzzer is not cancelled within 30 seconds, SMS and automated voice messages are routed directly to <strong className="text-white">Ananya Rao</strong> and secondary caregiver Rahul.
+          {/* Action & Simulation Controls */}
+          <div className="pt-3 border-t border-slate-800/80 space-y-2">
+            <div className="text-slate-400 text-[10px] font-mono uppercase">
+              Pipeline Verification Tools:
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={triggerTestSms}
+                className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 font-mono text-xs flex items-center justify-center gap-1.5 transition"
+              >
+                <Send className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Test Direct SMS</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={simulateFallEvent}
+                className="py-2 px-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-red-600/30 transition active:scale-95"
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>Test Fall Event Mode</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -8,7 +8,6 @@ import {
   CheckCircle2, 
   Flame, 
   Activity, 
-  Pill, 
   Cpu, 
   Clock, 
   MapPin, 
@@ -113,7 +112,7 @@ export const AlertsIncidentsPage: React.FC = () => {
             <div className="text-3xl font-extrabold font-mono text-white mt-1">
               {warningCount}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Mobility / medication deviations</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Mobility / device deviations</div>
           </div>
           <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400">
             <AlertTriangle className="w-6 h-6" />
@@ -189,7 +188,6 @@ export const AlertsIncidentsPage: React.FC = () => {
             { id: 'all', label: 'All Incidents' },
             { id: 'fall', label: 'Falls', icon: Flame },
             { id: 'mobility', label: 'Mobility', icon: Activity },
-            { id: 'medication', label: 'Medication', icon: Pill },
             { id: 'device', label: 'Hardware', icon: Cpu }
           ].map((tab) => {
             const Icon = tab.icon;
@@ -262,7 +260,7 @@ export const AlertsIncidentsPage: React.FC = () => {
                       ? 'bg-amber-600/20 text-amber-400 border border-amber-500/40'
                       : 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/40'
                   }`}>
-                    {incident.type === 'fall' ? <Flame className="w-5 h-5" /> : incident.type === 'medication' ? <Pill className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
+                    {incident.type === 'fall' ? <Flame className="w-5 h-5" /> : incident.type === 'device' ? <Cpu className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
                   </div>
 
                   <div>

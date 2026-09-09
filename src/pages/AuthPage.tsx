@@ -187,7 +187,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialTab = 'signin' }) => 
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-sm">
-            AI-Assisted Elderly Fall Prevention & Medication Assurance Command Center
+            AI-Assisted Elderly Fall Prevention & Emergency Dispatch Command Center
           </p>
         </div>
 

@@ -4,7 +4,6 @@ import {
   Search, 
   X, 
   Activity, 
-  Pill, 
   ShieldAlert, 
   Cpu, 
   Heart, 
@@ -20,7 +19,6 @@ export const SearchModal: React.FC = () => {
     setIsSearchOpen, 
     setActiveTab, 
     selectedPatient,
-    medications,
     alerts,
     devices
   } = useDashboard();
@@ -48,7 +46,6 @@ export const SearchModal: React.FC = () => {
     { label: 'Overview & 3D Digital Twin', tab: 'overview', icon: BrainCircuit, category: 'Navigation' },
     { label: 'Live 50Hz Sensor Oscilloscope', tab: 'monitoring', icon: Activity, category: 'Monitoring' },
     { label: 'AI Mobility Risk & Stride Analytics', tab: 'mobility', icon: Heart, category: 'AI Intelligence' },
-    { label: 'Smart Carousel Medicine Dispenser', tab: 'medication', icon: Pill, category: 'Medication' },
     { label: 'Emergency Escalation & Incident Records', tab: 'alerts', icon: ShieldAlert, category: 'Security' },
     { label: 'IoT Mesh Network & Diagnostics', tab: 'devices', icon: Cpu, category: 'Hardware' }
   ];
@@ -56,11 +53,6 @@ export const SearchModal: React.FC = () => {
   const filteredActions = quickActions.filter(a =>
     a.label.toLowerCase().includes(query.toLowerCase()) ||
     a.category.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const filteredMeds = medications.filter(m =>
-    m.name.toLowerCase().includes(query.toLowerCase()) ||
-    m.scheduledTime.toLowerCase().includes(query.toLowerCase())
   );
 
   const filteredAlerts = alerts.filter(a =>
@@ -126,30 +118,6 @@ export const SearchModal: React.FC = () => {
               })}
             </div>
           </div>
-
-          {/* Matches in Medications */}
-          {filteredMeds.length > 0 && query && (
-            <div>
-              <div className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider mb-2">
-                Prescription & Schedule Matches
-              </div>
-              <div className="space-y-1.5">
-                {filteredMeds.map((med) => (
-                  <div
-                    key={med.id}
-                    onClick={() => handleSelectTab('medication')}
-                    className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 cursor-pointer flex items-center justify-between text-xs"
-                  >
-                    <div>
-                      <span className="font-bold text-white">{med.name}</span>
-                      <span className="text-slate-400 text-[11px] ml-2">({med.dosage})</span>
-                    </div>
-                    <span className="font-mono text-cyan-300">{med.scheduledTime}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Matches in Incidents */}
           {filteredAlerts.length > 0 && query && (

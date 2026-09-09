@@ -6,7 +6,6 @@ import {
   Plus, 
   Upload, 
   Watch, 
-  Pill, 
   Radio, 
   HeartPulse, 
   CheckCircle2, 
@@ -65,7 +64,7 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
     recommendedIoTSettings: {
       wristbandSensitivity: string;
       nightMonitoring: string;
-      medicationReminders: string;
+      emergencyEscalation: string;
     };
     preventiveProtocols: string[];
     clinicianAdvisory: string;
@@ -101,9 +100,6 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
   // Device Assignment
   const [wristbandId, setWristbandId] = useState('WB-ESP32-9021');
   const [wristbandConnected, setWristbandConnected] = useState(true);
-
-  const [dispenserId, setDispenserId] = useState('MD-HX711-4011');
-  const [dispenserConnected, setDispenserConnected] = useState(true);
 
   const [hubId, setHubId] = useState('HUB-MQTT-1080');
   const [hubConnected, setHubConnected] = useState(true);
@@ -203,14 +199,11 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
       connectedDevices: {
         wristbandId,
         wristbandConnected,
-        dispenserId,
-        dispenserConnected,
         hubId,
         hubConnected
       },
       baselineMobilityScore: mobilityStatus === 'Limited Mobility' ? 55 : mobilityStatus === 'Assisted' ? 35 : 20,
-      currentMobilityScore: mobilityStatus === 'Limited Mobility' ? 58 : mobilityStatus === 'Assisted' ? 38 : 22,
-      medicationAdherence: 96
+      currentMobilityScore: mobilityStatus === 'Limited Mobility' ? 58 : mobilityStatus === 'Assisted' ? 38 : 22
     };
 
     setTimeout(() => {
@@ -252,7 +245,6 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
           medicalNotes,
           connectedDevices: {
             wristbandId,
-            dispenserId,
             hubId
           }
         })
@@ -788,7 +780,7 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
                   >
                     <option value="Active 24/7 Real-Time Watch">Active 24/7 Real-Time Watch</option>
                     <option value="High Priority Fall Surveillance">High Priority Fall Surveillance</option>
-                    <option value="Medication & Vitals Check">Medication & Vitals Check</option>
+                    <option value="Mobility & Gait Vitals Check">Mobility & Gait Vitals Check</option>
                     <option value="Post-Hospitalization Rehabilitation">Post-Hospitalization Rehabilitation</option>
                   </select>
                 </div>

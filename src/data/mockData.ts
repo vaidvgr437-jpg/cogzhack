@@ -1,7 +1,6 @@
 import { 
   ElderlyPerson, 
   MobilityMetrics, 
-  MedicationCompartment, 
   AlertIncident, 
   IoTDevice, 
   RecentEvent 
@@ -22,8 +21,7 @@ export const PRIMARY_PATIENT: ElderlyPerson = {
   primaryDoctor: 'Dr. Srinivas Murthy (Geriatrician)',
   medicalConditions: ['Mild Osteoarthritis', 'Hypertension', 'Post-Op Knee Rehab (2025)'],
   baselineMobilityScore: 28,
-  currentMobilityScore: 32,
-  medicationAdherence: 94
+  currentMobilityScore: 32
 };
 
 export const PATIENTS_LIST: ElderlyPerson[] = [
@@ -43,8 +41,7 @@ export const PATIENTS_LIST: ElderlyPerson[] = [
     primaryDoctor: 'Dr. Priya Sen',
     medicalConditions: ['Type 2 Diabetes', 'Mild Parkinsonism'],
     baselineMobilityScore: 42,
-    currentMobilityScore: 45,
-    medicationAdherence: 91
+    currentMobilityScore: 45
   },
   {
     id: 'patient-03',
@@ -61,8 +58,7 @@ export const PATIENTS_LIST: ElderlyPerson[] = [
     primaryDoctor: 'Dr. Arvind Joshi',
     medicalConditions: ['Cardiac Pacemaker', 'History of Syncope'],
     baselineMobilityScore: 50,
-    currentMobilityScore: 58,
-    medicationAdherence: 88
+    currentMobilityScore: 58
   }
 ];
 
@@ -79,72 +75,6 @@ export const INITIAL_MOBILITY_METRICS: MobilityMetrics = {
   aiConfidence: 91,
   lastAssessmentTime: '10:45 AM today'
 };
-
-export const INITIAL_MEDICATIONS: MedicationCompartment[] = [
-  {
-    id: 'med-01',
-    name: 'Paracetamol & Telmisartan',
-    dosage: '650mg + 40mg',
-    scheduledTime: '08:00 AM',
-    timeWindow: '07:30 AM - 08:30 AM',
-    status: 'verified',
-    verificationMethod: 'Camera + Weight',
-    cameraConfidence: 98.4,
-    expectedWeightGrams: 0.52,
-    observedWeightGrams: 0.49,
-    compartmentIndex: 1,
-    instructions: 'Take with warm water after breakfast',
-    pillColor: '#38bdf8',
-    verifiedAt: '08:04 AM'
-  },
-  {
-    id: 'med-02',
-    name: 'Vitamin D3 & Calcium',
-    dosage: '60k IU / 500mg',
-    scheduledTime: '01:00 PM',
-    timeWindow: '12:30 PM - 01:30 PM',
-    status: 'pending',
-    verificationMethod: 'Pending',
-    cameraConfidence: 0,
-    expectedWeightGrams: 0.75,
-    observedWeightGrams: 0.00,
-    compartmentIndex: 2,
-    instructions: 'Take post-lunch with milk or water',
-    pillColor: '#fbbf24'
-  },
-  {
-    id: 'med-03',
-    name: 'Atorvastatin & Aspirin',
-    dosage: '10mg + 75mg',
-    scheduledTime: '08:00 PM',
-    timeWindow: '07:30 PM - 08:30 PM',
-    status: 'verified',
-    verificationMethod: 'Camera + Weight',
-    cameraConfidence: 96.8,
-    expectedWeightGrams: 0.38,
-    observedWeightGrams: 0.37,
-    compartmentIndex: 3,
-    instructions: 'Take before sleep',
-    pillColor: '#34d399',
-    verifiedAt: 'Yesterday 08:02 PM'
-  },
-  {
-    id: 'med-04',
-    name: 'Glucosamine Sulfate',
-    dosage: '500mg',
-    scheduledTime: '10:00 PM',
-    timeWindow: '09:30 PM - 10:30 PM',
-    status: 'verified',
-    verificationMethod: 'Camera + Weight',
-    cameraConfidence: 97.2,
-    expectedWeightGrams: 0.60,
-    observedWeightGrams: 0.59,
-    compartmentIndex: 4,
-    instructions: 'Joint health supplement',
-    pillColor: '#a78bfa',
-    verifiedAt: 'Yesterday 09:58 PM'
-  }
-];
 
 export const INITIAL_ALERTS: AlertIncident[] = [
   {
@@ -287,62 +217,6 @@ export const INITIAL_ALERTS: AlertIncident[] = [
       call: false
     },
     isResolved: false
-  },
-  {
-    id: 'inc-03',
-    title: 'Medication dose verified successfully',
-    description: 'Morning Paracetamol + Telmisartan dispensed and verified via ESP32-CAM optical shape matching and HX711 0.49g weight verification.',
-    severity: 'resolved',
-    type: 'medication',
-    timestamp: '2026-08-20T08:04:12',
-    timeFormatted: '08:04 AM Today',
-    location: 'Smart Dispenser Station (Kitchen)',
-    device: 'ESP32-CAM Smart Dispenser',
-    confidence: 98,
-    sensorEvidence: {
-      peakAccelerationG: 0,
-      rotationRateDegS: 0,
-      impactDurationMs: 0,
-      weightDeltaG: 0.49
-    },
-    caregiverResponse: 'System Auto-Verified',
-    notificationStatus: 'Logged',
-    escalationStages: {
-      buzzer: false,
-      push: false,
-      sms: false,
-      call: false
-    },
-    isResolved: true,
-    resolvedAt: '08:04 AM'
-  },
-  {
-    id: 'inc-04',
-    title: 'Scheduled afternoon dose verification window open',
-    description: 'Vitamin D3 & Calcium ready in Compartment 2.',
-    severity: 'info',
-    type: 'medication',
-    timestamp: '2026-08-19T13:00:00',
-    timeFormatted: 'Yesterday 01:00 PM',
-    location: 'Smart Dispenser Station',
-    device: 'ESP32-CAM Smart Dispenser',
-    confidence: 96,
-    sensorEvidence: {
-      peakAccelerationG: 0,
-      rotationRateDegS: 0,
-      impactDurationMs: 0,
-      weightDeltaG: 0.74
-    },
-    caregiverResponse: 'Dispensed on schedule',
-    notificationStatus: 'Delivered',
-    escalationStages: {
-      buzzer: false,
-      push: true,
-      sms: false,
-      call: false
-    },
-    isResolved: true,
-    resolvedAt: 'Yesterday 01:06 PM'
   }
 ];
 
@@ -363,27 +237,6 @@ export const INITIAL_DEVICES: IoTDevice[] = [
       sensorHealth: 'Optimal',
       networkLatencyMs: 14,
       packetLossPct: 0.1
-    }
-  },
-  {
-    id: 'dev-02',
-    name: 'Smart Medicine Dispenser RX-3',
-    type: 'dispenser',
-    model: 'ESP32-CAM + HX711 Load Cell + MG996R Servo',
-    status: 'online',
-    battery: 100, // AC Powered
-    signalStrength: 98,
-    lastSync: '2 minutes ago',
-    ipAddress: '192.168.1.145',
-    macAddress: '3C:71:BF:88:12:0A',
-    firmwareVersion: 'v1.9.0',
-    diagnostics: {
-      sensorHealth: 'Optimal',
-      cameraHealth: 'Optimal',
-      loadCellHealth: 'Optimal',
-      servoHealth: 'Optimal',
-      networkLatencyMs: 18,
-      packetLossPct: 0.0
     }
   },
   {
@@ -408,14 +261,6 @@ export const INITIAL_DEVICES: IoTDevice[] = [
 
 export const INITIAL_RECENT_EVENTS: RecentEvent[] = [
   {
-    id: 'ev-1',
-    time: '10:42 AM',
-    title: 'Medication verified via dual camera & load cell',
-    type: 'medication',
-    icon: 'Pill',
-    badgeColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-  },
-  {
     id: 'ev-2',
     time: '10:15 AM',
     title: 'Normal walking session in living corridor (84 steps/min)',
@@ -430,14 +275,6 @@ export const INITIAL_RECENT_EVENTS: RecentEvent[] = [
     type: 'movement',
     icon: 'Activity',
     badgeColor: 'text-blue-400 bg-blue-500/10 border-blue-500/20'
-  },
-  {
-    id: 'ev-4',
-    time: '08:00 AM',
-    title: 'Morning medication reminder chime acknowledged',
-    type: 'medication',
-    icon: 'Bell',
-    badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
   },
   {
     id: 'ev-5',
@@ -486,13 +323,3 @@ export const generateMobilityTimeSeries = (days: number = 30) => {
   }
   return data;
 };
-
-export const WEEKLY_MEDICATION_DATA = [
-  { day: 'Mon', scheduled: 4, verified: 4, rate: 100 },
-  { day: 'Tue', scheduled: 4, verified: 4, rate: 100 },
-  { day: 'Wed', scheduled: 4, verified: 3, rate: 75 },
-  { day: 'Thu', scheduled: 4, verified: 4, rate: 100 },
-  { day: 'Fri', scheduled: 4, verified: 4, rate: 100 },
-  { day: 'Sat', scheduled: 4, verified: 4, rate: 100 },
-  { day: 'Sun', scheduled: 4, verified: 4, rate: 100 },
-];

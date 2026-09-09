@@ -1,21 +1,22 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { 
   ElderlyPerson, 
   MobilityMetrics, 
-  MedicationCompartment, 
   AlertIncident, 
   IoTDevice, 
   RecentEvent,
   SensorTelemetry,
   DemoScenario,
   NavigationTab,
-  Severity
+  Severity,
+  EmergencyDispatchConfig,
+  DispatchedSms,
+  ActiveCallState
 } from '../types';
 import { 
   PRIMARY_PATIENT, 
   PATIENTS_LIST, 
   INITIAL_MOBILITY_METRICS, 
-  INITIAL_MEDICATIONS, 
   INITIAL_ALERTS, 
   INITIAL_DEVICES, 
   INITIAL_RECENT_EVENTS 
@@ -53,7 +54,6 @@ interface DashboardContextType {
   
   // Metrics & State
   mobilityMetrics: MobilityMetrics;
-  medications: MedicationCompartment[];
   alerts: AlertIncident[];
   devices: IoTDevice[];
   recentEvents: RecentEvent[];
@@ -61,7 +61,6 @@ interface DashboardContextType {
   telemetryHistory: SensorTelemetry[];
   
   // Interactive actions
-  verifyMedication: (id: string) => void;
   resolveAlert: (id: string, notes?: string) => void;
   simulateFallEvent: () => void;
   cancelEmergency: () => void;
@@ -98,6 +97,20 @@ interface DashboardContextType {
   // Clock / System Sync
   systemTime: string;
   lastSyncSecondsAgo: number;
+
+  // Emergency Mobile Dispatch Configuration & State
+  dispatchConfig: EmergencyDispatchConfig;
+  updateDispatchConfig: (config: Partial<EmergencyDispatchConfig>) => void;
+  isDispatchSettingsOpen: boolean;
+  setIsDispatchSettingsOpen: (open: boolean) => void;
+  activeCallState: ActiveCallState;
+  setActiveCallState: React.Dispatch<React.SetStateAction<ActiveCallState>>;
+  dispatchedSmsList: DispatchedSms[];
+  triggerTestSms: (phone?: string) => void;
+  triggerTestCall: (phone?: string) => void;
+  answerVoiceCall: () => void;
+  endVoiceCall: () => void;
+  toggleCallMute: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -135,7 +148,6 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [activeScenario, setActiveScenario] = useState<DemoScenario>('normal');
   
   const [mobilityMetrics, setMobilityMetrics] = useState<MobilityMetrics>(INITIAL_MOBILITY_METRICS);
-  const [medications, setMedications] = useState<MedicationCompartment[]>(INITIAL_MEDICATIONS);
   const [alerts, setAlerts] = useState<AlertIncident[]>(INITIAL_ALERTS);
   const [devices, setDevices] = useState<IoTDevice[]>(INITIAL_DEVICES);
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>(INITIAL_RECENT_EVENTS);
@@ -144,13 +156,73 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [isEmergencyActive, setIsEmergencyActive] = useState<boolean>(false);
   const [emergencyTimer, setEmergencyTimer] = useState<number>(0);
   const [isBuzzerActive, setIsBuzzerActive] = useState<boolean>(false);
-  
-  // Modals & Panels
-  const [selectedIncident, setSelectedIncident] = useState<AlertIncident | null>(null);
-  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
-  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState<boolean>(false);
-  
-  // Toasts
+
+  // Emergency Mobile & Dispatch Configuration
+  const DEFAULT_DISPATCH_CONFIG: EmergencyDispatchConfig = {
+    mobileNumber: '+1 (555) 942-0199',
+    contactName: 'Ananya Rao',
+    relation: 'Daughter & Primary Caregiver',
+    countryCode: '+1',
+    pushEnabled: true,
+    smsEnabled: true,
+    callEnabled: true,
+    pushDelaySeconds: 0,
+    smsDelaySeconds: 10,
+    callDelaySeconds: 25,
+    autoCallVoice: true,
+  };
+
+  const [dispatchConfig, setDispatchConfig] = useState<EmergencyDispatchConfig>(() => {
+    try {
+      const saved = localStorage.getItem('sentinel_dispatch_config');
+      if (saved) {
+        return { ...DEFAULT_DISPATCH_CONFIG, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_DISPATCH_CONFIG;
+  });
+
+  const [isDispatchSettingsOpen, setIsDispatchSettingsOpen] = useState(false);
+
+  const [activeCallState, setActiveCallState] = useState<ActiveCallState>({
+    status: 'idle',
+    caller: 'SentinelCare AI Voice Dispatch (+1-800-736-8463)',
+    recipientNumber: '+1 (555) 942-0199',
+    recipientName: 'Ananya Rao',
+    durationSeconds: 0,
+    speechTranscript: '',
+    isMuted: false,
+    residentName: 'Eleanor Vance',
+    location: 'Living Room',
+    peakG: 3.82
+  });
+
+  const [dispatchedSmsList, setDispatchedSmsList] = useState<DispatchedSms[]>(() => {
+    try {
+      const saved = localStorage.getItem('sentinel_dispatched_sms');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      {
+        id: 'sms-init-1',
+        timestamp: '10:14:00 AM',
+        recipientNumber: '+1 (555) 942-0199',
+        recipientName: 'Ananya Rao',
+        message: '[SENTINEL-CARE] Emergency Dispatch System armed. Active phone number: +1 (555) 942-0199. Fall event mode escalation timing: Push 0s, SMS 10s, Call 25s.',
+        status: 'DELIVERED',
+        location: 'Command Center'
+      }
+    ];
+  });
+
+  // Toasts System
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = useCallback((title: string, message: string, type: ToastMessage['type'] = 'info') => {
@@ -170,6 +242,91 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
+
+  const updateDispatchConfig = useCallback((newPartial: Partial<EmergencyDispatchConfig>) => {
+    setDispatchConfig(prev => {
+      const updated = { ...prev, ...newPartial };
+      try {
+        localStorage.setItem('sentinel_dispatch_config', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+    addToast('Dispatch Settings Saved', 'Emergency mobile number and escalation timings updated.', 'success');
+  }, [addToast]);
+
+  const answerVoiceCall = useCallback(() => {
+    setActiveCallState(prev => ({
+      ...prev,
+      status: 'connected',
+      startedAt: Date.now()
+    }));
+  }, []);
+
+  const endVoiceCall = useCallback(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setActiveCallState(prev => ({ ...prev, status: 'ended' }));
+    setTimeout(() => {
+      setActiveCallState(prev => ({ ...prev, status: 'idle' }));
+    }, 1200);
+    addToast('Call Ended', 'Emergency voice call disconnected.', 'info');
+  }, [addToast]);
+
+  const toggleCallMute = useCallback(() => {
+    setActiveCallState(prev => {
+      const nextMuted = !prev.isMuted;
+      if (nextMuted && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      return { ...prev, isMuted: nextMuted };
+    });
+  }, []);
+
+  const triggerTestSms = useCallback((phone?: string) => {
+    const targetPhone = phone || dispatchConfig.mobileNumber;
+    const testSms: DispatchedSms = {
+      id: 'sms-test-' + Date.now(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      recipientNumber: targetPhone,
+      recipientName: dispatchConfig.contactName || 'Primary Contact',
+      message: `[SENTINELCARE TEST ALERT] Verification ping to ${targetPhone}. Fall event notification pipeline is active and operational. (Time: ${new Date().toLocaleTimeString()})`,
+      status: 'DELIVERED',
+      location: 'Test Dispatch Console'
+    };
+    setDispatchedSmsList(prev => {
+      const updated = [testSms, ...prev];
+      try { localStorage.setItem('sentinel_dispatched_sms', JSON.stringify(updated.slice(0, 30))); } catch (e) {}
+      return updated;
+    });
+    addToast('Test SMS Sent', `Dispatched carrier ping to ${targetPhone} (Delivered).`, 'success');
+  }, [dispatchConfig, addToast]);
+
+  const triggerTestCall = useCallback((phone?: string) => {
+    const targetPhone = phone || dispatchConfig.mobileNumber;
+    const speech = `This is an automated test of the SentinelCare emergency dispatch system to registered number ${targetPhone}. Fall event monitoring, SMS dispatch, and voice escalation lines are operational.`;
+    setActiveCallState({
+      status: 'calling',
+      caller: 'SentinelCare Diagnostic Line (+1-800-736-8463)',
+      recipientNumber: targetPhone,
+      recipientName: dispatchConfig.contactName || 'Primary Contact',
+      startedAt: Date.now(),
+      durationSeconds: 0,
+      speechTranscript: speech,
+      isMuted: false,
+      residentName: selectedPatient.name,
+      location: 'Diagnostics Mode',
+      peakG: 0.0
+    });
+    addToast('Test Call Initiated', `Dialing registered number ${targetPhone}...`, 'info');
+  }, [dispatchConfig, selectedPatient, addToast]);
+  
+  // Modals & Panels
+  const [selectedIncident, setSelectedIncident] = useState<AlertIncident | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState<boolean>(false);
   
   // Authentication State (Default: check localStorage)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -482,7 +639,13 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     return () => clearInterval(streamInterval);
   }, [isEmergencyActive, activeScenario]);
 
-  // Emergency countdown timer
+  // Emergency countdown timer & automated escalation stages
+  const firedStagesRef = useRef<{ push: boolean; sms: boolean; call: boolean }>({
+    push: false,
+    sms: false,
+    call: false
+  });
+
   useEffect(() => {
     let timerId: any;
     if (isEmergencyActive) {
@@ -491,9 +654,131 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       }, 1000);
     } else {
       setEmergencyTimer(0);
+      firedStagesRef.current = { push: false, sms: false, call: false };
     }
     return () => clearInterval(timerId);
   }, [isEmergencyActive]);
+
+  // Automated Escalation Pipeline: Push Notification, SMS, Voice Call as per Fall Event Mode timing
+  useEffect(() => {
+    if (!isEmergencyActive) {
+      firedStagesRef.current = { push: false, sms: false, call: false };
+      return;
+    }
+
+    // 1. PUSH NOTIFICATION (At configured pushDelaySeconds, e.g. 0s)
+    if (!firedStagesRef.current.push && emergencyTimer >= dispatchConfig.pushDelaySeconds && dispatchConfig.pushEnabled) {
+      firedStagesRef.current.push = true;
+      addToast(
+        '🚨 PUSH NOTIFICATION DISPATCHED',
+        `Critical Fall Alert pushed to caregiver device for ${selectedPatient.name}. Telemetry live.`,
+        'error'
+      );
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(`CRITICAL FALL: ${selectedPatient.name}`, {
+            body: `Severe deceleration (3.82G) detected in ${selectedPatient.room || 'Living Room'}. Local buzzer sounding.`,
+            icon: selectedPatient.avatar,
+            tag: 'sentinel-fall-alert'
+          });
+        } catch (e) {
+          console.warn('Browser notification error:', e);
+        }
+      }
+    }
+
+    // 2. EMERGENCY SMS DISPATCH (At configured smsDelaySeconds, e.g. 10s)
+    if (!firedStagesRef.current.sms && emergencyTimer >= dispatchConfig.smsDelaySeconds && dispatchConfig.smsEnabled) {
+      firedStagesRef.current.sms = true;
+      const smsMsg: DispatchedSms = {
+        id: 'sms-' + Date.now(),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        recipientNumber: dispatchConfig.mobileNumber,
+        recipientName: dispatchConfig.contactName,
+        message: `[SENTINELCARE CRITICAL] High-severity fall detected for ${selectedPatient.name} in ${selectedPatient.room || 'Living Room'}. Peak deceleration: 3.82G. Sensor confidence: 96%. Wristband buzzer sounding. Tap to acknowledge: https://sentinelcare.health/live/resp-9021`,
+        status: 'DELIVERED',
+        peakAccelerationG: 3.82,
+        location: selectedPatient.room || 'Living Room'
+      };
+      setDispatchedSmsList(prev => {
+        const next = [smsMsg, ...prev];
+        try { localStorage.setItem('sentinel_dispatched_sms', JSON.stringify(next.slice(0, 30))); } catch (e) {}
+        return next;
+      });
+      addToast(
+        '💬 EMERGENCY SMS DISPATCHED',
+        `Automated SMS sent to registered mobile: ${dispatchConfig.mobileNumber} (${dispatchConfig.contactName})`,
+        'error'
+      );
+    }
+
+    // 3. AUTOMATED EMERGENCY VOICE CALL (At configured callDelaySeconds, e.g. 25s)
+    if (!firedStagesRef.current.call && emergencyTimer >= dispatchConfig.callDelaySeconds && dispatchConfig.callEnabled) {
+      firedStagesRef.current.call = true;
+      const speech = `Emergency alert from SentinelCare. A severe fall event has been detected for resident ${selectedPatient.name} in the ${selectedPatient.room || 'Living Room'} with peak deceleration 3.82 G. Local wristband alarm is active. Press 1 or tap Acknowledge to confirm response, or press 2 to dispatch emergency medical services.`;
+      
+      setActiveCallState({
+        status: 'calling',
+        caller: 'SentinelCare AI Voice Dispatch (+1-800-736-8463)',
+        recipientNumber: dispatchConfig.mobileNumber,
+        recipientName: dispatchConfig.contactName,
+        startedAt: Date.now(),
+        durationSeconds: 0,
+        speechTranscript: speech,
+        isMuted: false,
+        residentName: selectedPatient.name,
+        location: selectedPatient.room || 'Living Room',
+        peakG: 3.82
+      });
+
+      addToast(
+        '📞 AUTOMATED VOICE CALL INITIATED',
+        `Dialing registered emergency mobile: ${dispatchConfig.mobileNumber} (Escalation Stage 4)`,
+        'error'
+      );
+    }
+  }, [isEmergencyActive, emergencyTimer, dispatchConfig, selectedPatient, addToast]);
+
+  // Voice Call connect & duration tracking
+  useEffect(() => {
+    let connectTimeout: any;
+    if (activeCallState.status === 'calling') {
+      connectTimeout = setTimeout(() => {
+        setActiveCallState(prev => {
+          if (prev.status === 'calling') {
+            return { ...prev, status: 'connected', startedAt: Date.now() };
+          }
+          return prev;
+        });
+      }, 2500);
+    }
+    return () => clearTimeout(connectTimeout);
+  }, [activeCallState.status]);
+
+  useEffect(() => {
+    let callTimer: any;
+    if (activeCallState.status === 'connected') {
+      if (dispatchConfig.autoCallVoice && !activeCallState.isMuted && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(activeCallState.speechTranscript);
+          utterance.rate = 0.95;
+          utterance.pitch = 1.0;
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {
+          console.warn('Speech synthesis error', e);
+        }
+      }
+
+      callTimer = setInterval(() => {
+        setActiveCallState(prev => ({
+          ...prev,
+          durationSeconds: prev.durationSeconds + 1
+        }));
+      }, 1000);
+    }
+    return () => clearInterval(callTimer);
+  }, [activeCallState.status, activeCallState.isMuted, dispatchConfig.autoCallVoice, activeCallState.speechTranscript]);
 
   // Scenario switch handler
   const setScenario = useCallback((scenario: DemoScenario) => {
@@ -503,7 +788,6 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       setIsEmergencyActive(false);
       setIsBuzzerActive(false);
       setMobilityMetrics(INITIAL_MOBILITY_METRICS);
-      setMedications(INITIAL_MEDICATIONS);
       setAlerts(INITIAL_ALERTS);
       setDevices(INITIAL_DEVICES);
       addToast('Scenario: Normal Day', 'Restored baseline parameters. Person is stable & online.', 'success');
@@ -550,46 +834,6 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
     else if (scenario === 'fall_detection') {
       simulateFallEvent();
-    }
-    else if (scenario === 'missed_medication') {
-      setIsEmergencyActive(false);
-      setIsBuzzerActive(false);
-      setMedications(prev => prev.map(med => {
-        if (med.id === 'med-02') {
-          return {
-            ...med,
-            status: 'missed',
-            verificationMethod: 'Pending',
-            observedWeightGrams: 0.00,
-            instructions: 'EXPIRED: 13:00 dose window missed by 45 minutes.'
-          };
-        }
-        return med;
-      }));
-      const medAlert: AlertIncident = {
-        id: 'inc-med-' + Date.now(),
-        title: 'Missed Medication: Vitamin D3 & Calcium (13:00)',
-        description: 'Dispenser tray was not accessed during the 60-minute scheduled window. Load cell reported 0g change.',
-        severity: 'warning',
-        type: 'medication',
-        timestamp: new Date().toISOString(),
-        timeFormatted: '13:45 Today',
-        location: 'Smart Dispenser Station',
-        device: 'ESP32-CAM Smart Dispenser',
-        confidence: 99,
-        sensorEvidence: {
-          peakAccelerationG: 0,
-          rotationRateDegS: 0,
-          impactDurationMs: 0,
-          weightDeltaG: 0.00
-        },
-        caregiverResponse: 'Automated SMS reminder dispatched to Meena Rao.',
-        notificationStatus: 'Delivered (SMS)',
-        escalationStages: { buzzer: true, push: true, sms: true, call: false },
-        isResolved: false
-      };
-      setAlerts(prev => [medAlert, ...prev.filter(a => !a.id.startsWith('inc-med'))]);
-      addToast('Scenario: Missed Medication', 'Compartment 2 window closed with no weight delta.', 'warning');
     }
     else if (scenario === 'device_offline') {
       setIsEmergencyActive(false);
@@ -642,6 +886,7 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     setIsEmergencyActive(true);
     setIsBuzzerActive(true);
     setEmergencyTimer(0);
+    firedStagesRef.current = { push: false, sms: false, call: false };
 
     const fallIncident: AlertIncident = {
       id: 'fall-' + Date.now(),
@@ -692,6 +937,16 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     setIsEmergencyActive(false);
     setIsBuzzerActive(false);
     setEmergencyTimer(0);
+    firedStagesRef.current = { push: false, sms: false, call: false };
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (activeCallState.status !== 'idle') {
+      setActiveCallState(prev => ({ ...prev, status: 'ended' }));
+      setTimeout(() => {
+        setActiveCallState(prev => ({ ...prev, status: 'idle' }));
+      }, 1000);
+    }
     setAlerts(prev => prev.map(a => {
       if (a.severity === 'critical' && !a.isResolved) {
         return {
@@ -706,28 +961,11 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       return a;
     }));
     addToast('Emergency Resolved', 'Caregiver acknowledged and marked patient safe.', 'success');
-  }, [addToast]);
+  }, [addToast, activeCallState.status]);
 
   const toggleBuzzer = useCallback(() => {
     setIsBuzzerActive(prev => !prev);
   }, []);
-
-  const verifyMedication = useCallback((id: string) => {
-    setMedications(prev => prev.map(med => {
-      if (med.id === id) {
-        return {
-          ...med,
-          status: 'verified',
-          verificationMethod: 'Camera + Weight',
-          cameraConfidence: 98.6,
-          observedWeightGrams: med.expectedWeightGrams - 0.02,
-          verifiedAt: 'Just now'
-        };
-      }
-      return med;
-    }));
-    addToast('Medication Verified', 'ESP32-CAM & HX711 confirmed pill count & weight match.', 'success');
-  }, [addToast]);
 
   const resolveAlert = useCallback((id: string, notes?: string) => {
     setAlerts(prev => prev.map(a => {
@@ -768,13 +1006,11 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       activeScenario,
       setScenario,
       mobilityMetrics,
-      medications,
       alerts,
       devices,
       recentEvents,
       telemetry,
       telemetryHistory,
-      verifyMedication,
       resolveAlert,
       simulateFallEvent,
       cancelEmergency,
@@ -798,7 +1034,19 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       currentUserEmail,
       login,
       signup,
-      logout
+      logout,
+      dispatchConfig,
+      updateDispatchConfig,
+      isDispatchSettingsOpen,
+      setIsDispatchSettingsOpen,
+      activeCallState,
+      setActiveCallState,
+      dispatchedSmsList,
+      triggerTestSms,
+      triggerTestCall,
+      answerVoiceCall,
+      endVoiceCall,
+      toggleCallMute
     }}>
       {children}
     </DashboardContext.Provider>

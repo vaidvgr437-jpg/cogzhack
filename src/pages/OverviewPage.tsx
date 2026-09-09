@@ -5,7 +5,6 @@ import { MobilityTrendChart } from '../components/charts/MobilityTrendChart';
 import { 
   ShieldCheck, 
   Activity, 
-  Pill, 
   Flame, 
   Cpu, 
   TrendingDown, 
@@ -26,7 +25,6 @@ export const OverviewPage: React.FC = () => {
   const { 
     selectedPatient, 
     mobilityMetrics, 
-    medications, 
     alerts, 
     devices, 
     recentEvents, 
@@ -38,8 +36,6 @@ export const OverviewPage: React.FC = () => {
     navigateTo
   } = useDashboard();
 
-  const verifiedMedsCount = medications.filter(m => m.status === 'verified').length;
-  const totalMedsCount = medications.length;
   const fallIncidentsToday = alerts.filter(a => a.type === 'fall' && !a.isResolved).length;
   const onlineDevicesCount = devices.filter(d => d.status === 'online').length;
 
@@ -165,30 +161,30 @@ export const OverviewPage: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI 2: Medication Adherence */}
+        {/* KPI 2: Daily Gait & Step Activity */}
         <div
-          onClick={() => setActiveTab('medication')}
+          onClick={() => setActiveTab('mobility')}
           className="glass-card p-4 rounded-2xl border border-cyan-500/20 cursor-pointer flex flex-col justify-between group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-slate-400 uppercase">Medication Adherence</span>
+            <span className="text-xs font-mono text-slate-400 uppercase">Daily Gait Activity</span>
             <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition">
-              <Pill className="w-4 h-4" />
+              <Footprints className="w-4 h-4" />
             </div>
           </div>
 
           <div className="my-2 flex items-baseline gap-2">
             <span className="text-2xl font-extrabold font-mono text-emerald-400">
-              {activeScenario === 'missed_medication' ? '75%' : '94%'}
+              {mobilityMetrics.dailySteps.toLocaleString()}
             </span>
-            <span className="text-xs text-slate-400 font-mono">adherence</span>
+            <span className="text-xs text-slate-400 font-mono">steps</span>
             <span className="ml-auto text-xs font-mono text-slate-300">
-              {activeScenario === 'missed_medication' ? '3 / 4 verified' : '27 / 29 doses'}
+              {mobilityMetrics.stepCadence} steps/min
             </span>
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800">
-            <span>Dual Camera + HX711 Load Cell</span>
+            <span>Goal: {mobilityMetrics.dailyStepGoal.toLocaleString()} steps</span>
             <ArrowUpRight className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
           </div>
         </div>

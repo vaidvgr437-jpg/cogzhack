@@ -17,7 +17,8 @@ import {
   Activity,
   LogOut,
   Plus,
-  Trash2
+  Trash2,
+  PhoneCall
 } from 'lucide-react';
 
 interface TopHeaderProps {
@@ -42,7 +43,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
     isNotificationCenterOpen,
     setIsNotificationCenterOpen,
     currentUser,
-    logout
+    logout,
+    dispatchConfig,
+    setIsDispatchSettingsOpen
   } = useDashboard();
 
   const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
@@ -53,7 +56,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
     { id: 'normal', label: 'Normal Day', icon: CheckCircle2, color: 'text-emerald-400' },
     { id: 'mobility_decline', label: 'Mobility Decline', icon: Activity, color: 'text-amber-400' },
     { id: 'fall_detection', label: 'Fall Event', icon: Flame, color: 'text-red-400' },
-    { id: 'missed_medication', label: 'Missed Med', icon: AlertTriangle, color: 'text-amber-300' },
     { id: 'device_offline', label: 'Device Offline', icon: WifiOff, color: 'text-slate-400' }
   ];
 
@@ -237,6 +239,16 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
               )}
             </button>
           </div>
+
+          {/* Registered Emergency Mobile Quick Trigger */}
+          <button
+            onClick={() => setIsDispatchSettingsOpen(true)}
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 border border-slate-800 hover:border-cyan-500/40 text-xs font-mono transition"
+            title="Configure registered mobile number & automated escalation timings"
+          >
+            <PhoneCall className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[11px] font-bold">{dispatchConfig.mobileNumber}</span>
+          </button>
 
           {/* Emergency SOS Button */}
           <button

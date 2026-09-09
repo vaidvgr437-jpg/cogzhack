@@ -10,6 +10,8 @@ import { TopHeader } from './components/layout/TopHeader';
 import { NotificationCenter } from './components/layout/NotificationCenter';
 import { SearchModal } from './components/layout/SearchModal';
 import { EmergencyModal } from './components/layout/EmergencyModal';
+import { EmergencyVoiceCallModal } from './components/modals/EmergencyVoiceCallModal';
+import { EmergencyDispatchSettingsModal } from './components/modals/EmergencyDispatchSettingsModal';
 import { RemovePatientModal } from './components/layout/RemovePatientModal';
 import { ToastContainer } from './components/layout/ToastContainer';
 
@@ -17,7 +19,6 @@ import { ToastContainer } from './components/layout/ToastContainer';
 import { OverviewPage } from './pages/OverviewPage';
 import { LiveMonitoringPage } from './pages/LiveMonitoringPage';
 import { MobilityAIPage } from './pages/MobilityAIPage';
-import { MedicationPage } from './pages/MedicationPage';
 import { AlertsIncidentsPage } from './pages/AlertsIncidentsPage';
 import { DevicesSettingsPage } from './pages/DevicesSettingsPage';
 import { AuthPage } from './pages/AuthPage';
@@ -55,8 +56,6 @@ const MainLayout: React.FC = () => {
         return <LiveMonitoringPage />;
       case 'mobility':
         return <MobilityAIPage />;
-      case 'medication':
-        return <MedicationPage />;
       case 'alerts':
         return <AlertsIncidentsPage />;
       case 'devices':
@@ -100,6 +99,8 @@ const MainLayout: React.FC = () => {
       <NotificationCenter />
       <SearchModal />
       <EmergencyModal />
+      <EmergencyVoiceCallModal />
+      <EmergencyDispatchSettingsModal />
       <RemovePatientModal />
       <ToastContainer />
     </div>

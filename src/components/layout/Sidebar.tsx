@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   Activity,
   BrainCircuit,
-  Pill,
   ShieldAlert,
   Cpu,
   Radio,
@@ -40,7 +39,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'monitoring', label: 'Live Monitoring', icon: Activity },
     { id: 'mobility', label: 'Mobility & AI', icon: BrainCircuit },
-    { id: 'medication', label: 'Medication', icon: Pill },
     {
       id: 'alerts',
       label: 'Alerts & Incidents',

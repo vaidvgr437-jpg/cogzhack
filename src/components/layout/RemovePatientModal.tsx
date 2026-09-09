@@ -6,7 +6,6 @@ import {
   AlertTriangle, 
   X, 
   Watch, 
-  Pill, 
   Radio, 
   CheckCircle2, 
   ShieldAlert,
@@ -111,14 +110,10 @@ export const RemovePatientModal: React.FC = () => {
           <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
             Hardware Unbinding & Telemetry Impact
           </span>
-          <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
+          <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
             <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 flex items-center gap-1.5 text-slate-300">
               <Watch className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
               <span className="truncate">Smart Wristband</span>
-            </div>
-            <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 flex items-center gap-1.5 text-slate-300">
-              <Pill className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-              <span className="truncate">Med Dispenser</span>
             </div>
             <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 flex items-center gap-1.5 text-slate-300">
               <Radio className="w-3.5 h-3.5 text-blue-400 shrink-0" />
@@ -135,7 +130,7 @@ export const RemovePatientModal: React.FC = () => {
               Are you sure you want to remove this resident?
             </p>
             <p className="text-[11px] text-red-300/80 mt-1">
-              Active fall detection telemetry, medication reminders, and gait baseline analytics will be halted for this profile.
+              Active fall detection telemetry, emergency dispatch pipeline, and gait baseline analytics will be halted for this profile.
               {isOnlyPatient && (
                 <span className="block mt-1 text-amber-300 font-semibold">
                   Note: This is your currently registered resident. You can add another resident at any time.

@@ -175,22 +175,6 @@ export const HomeDigitalTwin3D: React.FC = () => {
     scene.add(hubGroup);
     interactiveObjects.push({ mesh: hubMesh, type: 'hub', id: 'Home Hub BLE Gateway', targetTab: 'devices' });
 
-    // 3. Smart Medicine Dispenser Node (In Medicine Area)
-    const medGroup = new THREE.Group();
-    medGroup.position.set(4.5, 1.3, 4.5);
-    const medGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.8, 24);
-    const medMat = new THREE.MeshStandardMaterial({
-      color: 0x10b981,
-      emissive: 0x059669,
-      emissiveIntensity: 0.6,
-      metalness: 0.5,
-      roughness: 0.3
-    });
-    const medMesh = new THREE.Mesh(medGeo, medMat);
-    medGroup.add(medMesh);
-    scene.add(medGroup);
-    interactiveObjects.push({ mesh: medMesh, type: 'dispenser', id: 'ESP32-CAM Medicine Dispenser', targetTab: 'medication' });
-
     // 4. Cloud Gateway Floating Node
     const cloudGroup = new THREE.Group();
     cloudGroup.position.set(0, 6.5, 0);
@@ -214,14 +198,7 @@ export const HomeDigitalTwin3D: React.FC = () => {
       hubGroup.position
     );
 
-    // Path 2: Dispenser -> Hub
-    const curve2 = new THREE.QuadraticBezierCurve3(
-      medGroup.position,
-      new THREE.Vector3(2.5, 2.5, 1.8),
-      hubGroup.position
-    );
-
-    // Path 3: Hub -> Cloud
+    // Path 2: Hub -> Cloud
     const curve3 = new THREE.QuadraticBezierCurve3(
       hubGroup.position,
       new THREE.Vector3(0.2, 3.8, -0.5),
@@ -240,20 +217,16 @@ export const HomeDigitalTwin3D: React.FC = () => {
     };
 
     scene.add(createPathLine(curve1, isEmergencyActive ? 0xef4444 : 0x38bdf8));
-    scene.add(createPathLine(curve2, 0x10b981));
     scene.add(createPathLine(curve3, 0x818cf8));
 
     // Particle Packets
     const particleGeo = new THREE.SphereGeometry(0.12, 8, 8);
     const p1Mat = new THREE.MeshBasicMaterial({ color: isEmergencyActive ? 0xff3333 : 0x00f0ff });
-    const p2Mat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
     const p3Mat = new THREE.MeshBasicMaterial({ color: 0xa5b4fc });
 
     const p1 = new THREE.Mesh(particleGeo, p1Mat);
-    const p2 = new THREE.Mesh(particleGeo, p2Mat);
     const p3 = new THREE.Mesh(particleGeo, p3Mat);
     scene.add(p1);
-    scene.add(p2);
     scene.add(p3);
 
     // Raycasting for Interactivity & Hover
@@ -328,11 +301,9 @@ export const HomeDigitalTwin3D: React.FC = () => {
 
       // Animate Packets along curves
       const t1 = (elapsedTime * 0.7) % 1;
-      const t2 = (elapsedTime * 0.5) % 1;
       const t3 = (elapsedTime * 0.9) % 1;
 
       p1.position.copy(curve1.getPoint(t1));
-      p2.position.copy(curve2.getPoint(t2));
       p3.position.copy(curve3.getPoint(t3));
 
       // Animate Wearable beacon

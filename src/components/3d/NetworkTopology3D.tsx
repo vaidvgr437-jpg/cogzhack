@@ -19,15 +19,6 @@ export const NetworkTopology3D: React.FC = () => {
       desc: 'Edge filtering on Xtensa dual-core processor with local threshold triggers.'
     },
     {
-      id: 'dispenser',
-      name: 'Medicine Dispenser (ESP32-CAM)',
-      protocol: 'Wi-Fi 802.11 b/g/n + MQTT',
-      frequency: 'Event-driven + Scheduled Window',
-      topic: 'sentinel/medication/verify',
-      status: 'online',
-      desc: 'Dual verification via OV2640 camera image feature extraction & HX711 load cell.'
-    },
-    {
       id: 'hub',
       name: 'Home Hub Gateway',
       protocol: 'MQTT / WebSockets over TLS',
@@ -89,13 +80,11 @@ export const NetworkTopology3D: React.FC = () => {
     // Topology Node Positions
     // Hub in center (0, 0, 0)
     // Wristband left (-4, 0, 1)
-    // Dispenser bottom-left (-3, -2, -1)
     // Cloud top-right (3, 2, -1)
     // Caregiver far-right (4.5, -1, 1)
     const nodePositions = {
       hub: new THREE.Vector3(0, 0, 0),
       wristband: new THREE.Vector3(-4, 0.5, 1),
-      dispenser: new THREE.Vector3(-3, -2, -1),
       cloud: new THREE.Vector3(2.8, 1.8, -1),
       caregiver: new THREE.Vector3(4.6, -1.2, 1)
     };
@@ -103,7 +92,6 @@ export const NetworkTopology3D: React.FC = () => {
     const nodeColors = {
       hub: 0x0284c7,
       wristband: isEmergencyActive ? 0xef4444 : 0x06b6d4,
-      dispenser: 0x10b981,
       cloud: 0x818cf8,
       caregiver: 0x38bdf8
     };
@@ -143,7 +131,6 @@ export const NetworkTopology3D: React.FC = () => {
     // Spline Links between Nodes
     const links = [
       { from: nodePositions.wristband, to: nodePositions.hub, color: isEmergencyActive ? 0xef4444 : 0x06b6d4 },
-      { from: nodePositions.dispenser, to: nodePositions.hub, color: 0x10b981 },
       { from: nodePositions.hub, to: nodePositions.cloud, color: 0x818cf8 },
       { from: nodePositions.cloud, to: nodePositions.caregiver, color: 0x38bdf8 }
     ];

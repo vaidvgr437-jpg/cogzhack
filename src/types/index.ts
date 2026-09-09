@@ -1,9 +1,9 @@
 export type Severity = 'critical' | 'warning' | 'resolved' | 'info';
-export type IncidentType = 'fall' | 'mobility' | 'medication' | 'device';
-export type DeviceType = 'wristband' | 'dispenser' | 'hub' | 'cloud' | 'backend';
+export type IncidentType = 'fall' | 'mobility' | 'device';
+export type DeviceType = 'wristband' | 'hub' | 'cloud' | 'backend';
 export type ConnectionStatus = 'online' | 'offline' | 'warning' | 'syncing';
-export type DemoScenario = 'normal' | 'mobility_decline' | 'fall_detection' | 'missed_medication' | 'device_offline';
-export type NavigationTab = 'overview' | 'monitoring' | 'mobility' | 'medication' | 'alerts' | 'devices';
+export type DemoScenario = 'normal' | 'mobility_decline' | 'fall_detection' | 'device_offline';
+export type NavigationTab = 'overview' | 'monitoring' | 'mobility' | 'alerts' | 'devices';
 
 export interface ElderlyPerson {
   id: string;
@@ -35,14 +35,11 @@ export interface ElderlyPerson {
   connectedDevices?: {
     wristbandId?: string;
     wristbandConnected?: boolean;
-    dispenserId?: string;
-    dispenserConnected?: boolean;
     hubId?: string;
     hubConnected?: boolean;
   };
   baselineMobilityScore: number;
   currentMobilityScore: number;
-  medicationAdherence: number;
 }
 
 export interface MobilityMetrics {
@@ -74,23 +71,6 @@ export interface SensorTelemetry {
   rssi: number; // dBm
 }
 
-export interface MedicationCompartment {
-  id: string;
-  name: string;
-  dosage: string;
-  scheduledTime: string; // e.g. '08:00 AM'
-  timeWindow: string; // e.g. '07:30 - 08:30 AM'
-  status: 'verified' | 'pending' | 'missed' | 'dispensed';
-  verificationMethod: 'Camera + Weight' | 'Camera Only' | 'Weight Only' | 'Pending';
-  cameraConfidence: number; // %
-  expectedWeightGrams: number;
-  observedWeightGrams: number;
-  compartmentIndex: number; // 1 to 4
-  instructions: string;
-  pillColor: string;
-  verifiedAt?: string;
-}
-
 export interface AlertIncident {
   id: string;
   title: string;
@@ -106,7 +86,6 @@ export interface AlertIncident {
     peakAccelerationG: number;
     rotationRateDegS: number;
     impactDurationMs: number;
-    weightDeltaG?: number;
     snapshotUrl?: string;
   };
   caregiverResponse: string;
@@ -144,9 +123,6 @@ export interface IoTDevice {
   firmwareVersion: string;
   diagnostics: {
     sensorHealth: 'Optimal' | 'Degraded' | 'Error';
-    cameraHealth?: 'Optimal' | 'Degraded' | 'Error';
-    loadCellHealth?: 'Optimal' | 'Degraded' | 'Error';
-    servoHealth?: 'Optimal' | 'Degraded' | 'Error';
     networkLatencyMs: number;
     packetLossPct: number;
   };
@@ -156,7 +132,48 @@ export interface RecentEvent {
   id: string;
   time: string;
   title: string;
-  type: 'medication' | 'movement' | 'alert' | 'system';
+  type: 'movement' | 'alert' | 'system';
   icon: string;
   badgeColor: string;
+}
+
+export interface EmergencyDispatchConfig {
+  mobileNumber: string;
+  contactName: string;
+  relation: string;
+  countryCode: string;
+  pushEnabled: boolean;
+  smsEnabled: boolean;
+  callEnabled: boolean;
+  // Escalation timing delays (in seconds) for Fall Event Mode
+  pushDelaySeconds: number; // e.g. 0 (instant)
+  smsDelaySeconds: number;  // e.g. 10 (dispatches SMS at 10s)
+  callDelaySeconds: number; // e.g. 25 (initiates phone call at 25s)
+  autoCallVoice: boolean;   // Text-to-speech voice read-out on call
+}
+
+export interface DispatchedSms {
+  id: string;
+  timestamp: string;
+  recipientNumber: string;
+  recipientName: string;
+  message: string;
+  status: 'SENT' | 'DELIVERED' | 'ACKNOWLEDGED';
+  incidentId?: string;
+  peakAccelerationG?: number;
+  location?: string;
+}
+
+export interface ActiveCallState {
+  status: 'idle' | 'calling' | 'connected' | 'ended';
+  caller: string;
+  recipientNumber: string;
+  recipientName: string;
+  startedAt?: number;
+  durationSeconds: number;
+  speechTranscript: string;
+  isMuted: boolean;
+  residentName: string;
+  location: string;
+  peakG: number;
 }
