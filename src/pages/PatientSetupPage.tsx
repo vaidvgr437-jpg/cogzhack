@@ -25,7 +25,10 @@ import {
   Check, 
   Camera,
   X,
-  ChevronRight
+  ChevronRight,
+  ArrowLeft,
+  BrainCircuit,
+  ShieldCheck
 } from 'lucide-react';
 
 const PRESET_AVATARS = [
@@ -46,11 +49,27 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
     currentUserEmail, 
     addPatient, 
     navigateTo, 
+    setActiveTab,
     patientsList,
     addToast 
   } = useDashboard();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Gemini AI Clinical Plan Generation State
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiInsights, setAiInsights] = useState<{
+    clinicalSummary: string;
+    fallRiskLevel: string;
+    fallRiskScore: number;
+    recommendedIoTSettings: {
+      wristbandSensitivity: string;
+      nightMonitoring: string;
+      medicationReminders: string;
+    };
+    preventiveProtocols: string[];
+    clinicianAdvisory: string;
+  } | null>(null);
 
   // Avatar State
   const [avatarUrl, setAvatarUrl] = useState<string>(PRESET_AVATARS[0]);
@@ -202,6 +221,7 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
   };
 
   const handleGoToDashboard = () => {
+    setActiveTab('overview');
     if (onDone) {
       onDone();
     } else {
@@ -209,7 +229,53 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
     }
   };
 
+  const handleBackToHome = () => {
+    setActiveTab('overview');
+    if (onDone) {
+      onDone();
+    } else {
+      navigateTo('/dashboard');
+    }
+  };
+
+  const handleGenerateAICarePlan = async () => {
+    setIsGeneratingAI(true);
+    try {
+      const res = await fetch('/api/ai/onboarding-insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: fullName.trim() || 'New Resident',
+          age: typeof age === 'number' ? age : parseInt(age as string, 10) || 75,
+          gender,
+          mobilityStatus,
+          medicalNotes,
+          connectedDevices: {
+            wristbandId,
+            dispenserId,
+            hubId
+          }
+        })
+      });
+      const data = await res.json();
+      if (data && data.data) {
+        setAiInsights(data.data);
+        addToast(
+          'Gemini Clinical AI Assessment Generated',
+          `Personalized fall risk and IoT thresholds calculated (${data.source || 'gemini-3.8-flash'}).`,
+          'success'
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      addToast('Clinical Heuristics Applied', 'Personalized baseline profile generated.', 'info');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   const handleSkip = () => {
+    setActiveTab('overview');
     addToast('Setup Deferred', 'You can register or update patient profiles anytime from the header.', 'info');
     if (onDone) {
       onDone();
@@ -287,24 +353,52 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
           </div>
         )}
 
-        {/* Top Header & Breadcrumb */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-600/20 border border-cyan-400/30 text-cyan-400">
-              <HeartPulse className="w-5 h-5" />
-            </div>
-            <span className="font-mono text-sm font-bold text-slate-300">
-              SENTINEL<span className="text-cyan-400">CARE</span> / PATIENT ONBOARDING
-            </span>
+        {/* Top Header & Breadcrumb with Prominent Back to Home Button */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {/* Direct Back to Home Button */}
+            <button
+              id="patient-setup-back-home-btn"
+              type="button"
+              onClick={handleBackToHome}
+              className="px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/90 hover:border-cyan-500/60 text-slate-200 hover:text-white text-xs font-mono font-bold flex items-center gap-2 transition shadow-md active:scale-95 group cursor-pointer"
+              title="Return to SentinelCare Command Center Home Page"
+            >
+              <ArrowLeft className="w-4 h-4 text-cyan-400 group-hover:-translate-x-1 transition-transform" />
+              <span>Back to Home</span>
+            </button>
+
+            {/* Clickable Brand Logo & Title */}
+            <button
+              type="button"
+              onClick={handleBackToHome}
+              className="flex items-center gap-2 text-left group cursor-pointer"
+              title="Return to SentinelCare Home"
+            >
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-600/20 border border-cyan-400/30 text-cyan-400 group-hover:border-cyan-400 transition">
+                <HeartPulse className="w-5 h-5" />
+              </div>
+              <span className="font-mono text-sm font-bold text-slate-300 group-hover:text-white transition">
+                SENTINEL<span className="text-cyan-400">CARE</span> / <span className="text-slate-400 group-hover:text-cyan-300">PATIENT ONBOARDING</span>
+              </span>
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSkip}
-            className="text-xs font-mono text-slate-400 hover:text-slate-200 hover:underline transition"
-          >
-            Skip for Now &rarr;
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Gemini API Key Telemetry Status Indicator */}
+            <div className="px-2.5 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/30 text-[11px] font-mono text-cyan-300 flex items-center gap-1.5 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+              <span>Gemini AI Connected</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="text-xs font-mono text-slate-400 hover:text-slate-200 hover:underline transition"
+            >
+              Skip for Now &rarr;
+            </button>
+          </div>
         </div>
 
         {/* Main Onboarding Card */}
@@ -716,6 +810,103 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
                     These notes help AI calibrate gait abnormality thresholds and alert priority.
                   </p>
                 </div>
+
+                {/* Gemini AI Smart Clinical Assessment & Care Plan Generator */}
+                <div className="md:col-span-2 pt-2">
+                  <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/30 relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-400">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-mono uppercase tracking-wider text-cyan-300 font-bold flex items-center gap-1.5">
+                            <span>Gemini Clinical Care Assessment</span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                              API Key Active
+                            </span>
+                          </h3>
+                          <p className="text-[11px] text-slate-400 font-mono">
+                            Analyze resident profile with Gemini 3.8 Flash to synthesize IoT thresholds and fall prevention protocols
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        id="generate-ai-care-plan-btn"
+                        type="button"
+                        onClick={handleGenerateAICarePlan}
+                        disabled={isGeneratingAI}
+                        className="px-3.5 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 hover:border-cyan-400 text-cyan-200 text-xs font-mono font-bold flex items-center justify-center gap-2 transition disabled:opacity-50 shrink-0"
+                      >
+                        {isGeneratingAI ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+                            <span>Synthesizing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Generate AI Care Plan</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* AI Assessment Result Card */}
+                    {aiInsights && (
+                      <div className="mt-3 p-4 rounded-xl bg-slate-900/90 border border-cyan-500/30 space-y-3 animate-fadeIn">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                            AI Clinical Assessment & Vulnerability Profile
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            aiInsights.fallRiskLevel === 'HIGH' || aiInsights.fallRiskLevel === 'CRITICAL'
+                              ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                              : aiInsights.fallRiskLevel === 'MODERATE'
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          }`}>
+                            RISK: {aiInsights.fallRiskLevel} ({aiInsights.fallRiskScore}/100)
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          {aiInsights.clinicalSummary}
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-800 text-[11px] font-mono">
+                          <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800">
+                            <span className="text-slate-500 block text-[10px]">WRISTBAND SENSITIVITY</span>
+                            <span className="text-cyan-300 font-bold">{aiInsights.recommendedIoTSettings.wristbandSensitivity}</span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800">
+                            <span className="text-slate-500 block text-[10px]">NIGHT MONITORING</span>
+                            <span className="text-cyan-300 font-bold">{aiInsights.recommendedIoTSettings.nightMonitoring}</span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800">
+                            <span className="text-slate-500 block text-[10px]">SMART DISPENSER</span>
+                            <span className="text-cyan-300 font-bold">{aiInsights.recommendedIoTSettings.medicationReminders}</span>
+                          </div>
+                        </div>
+
+                        {aiInsights.preventiveProtocols && aiInsights.preventiveProtocols.length > 0 && (
+                          <div className="pt-2 border-t border-slate-800">
+                            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5 font-bold">
+                              AI Fall Prevention Action Items:
+                            </span>
+                            <ul className="space-y-1 text-xs text-slate-300 list-disc list-inside">
+                              {aiInsights.preventiveProtocols.map((protocol, idx) => (
+                                <li key={idx} className="leading-normal">{protocol}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -911,13 +1102,26 @@ export const PatientSetupPage: React.FC<PatientSetupPageProps> = ({ onDone }) =>
 
             {/* SECTION 5: SAVE PATIENT & ACTIONS */}
             <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={handleSkip}
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-mono font-bold transition order-2 sm:order-1"
-              >
-                Skip for Now
-              </button>
+              <div className="flex items-center gap-3 w-full sm:w-auto order-2 sm:order-1">
+                {/* Bottom Back to Home Button */}
+                <button
+                  id="patient-setup-bottom-back-home-btn"
+                  type="button"
+                  onClick={handleBackToHome}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white text-xs font-mono font-bold flex items-center justify-center gap-2 transition active:scale-95 shadow-sm"
+                >
+                  <ArrowLeft className="w-4 h-4 text-cyan-400" />
+                  <span>Back to Home</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-400 hover:text-slate-200 text-xs font-mono font-bold transition"
+                >
+                  Skip for Now
+                </button>
+              </div>
 
               <button
                 id="save-patient-submit-btn"

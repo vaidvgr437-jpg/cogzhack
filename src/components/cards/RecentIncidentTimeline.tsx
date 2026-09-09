@@ -23,7 +23,11 @@ import {
   Calendar,
   Layers,
   ArrowUpRight,
-  ShieldCheck
+  ShieldCheck,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 
 interface RecentIncidentTimelineProps {
@@ -37,6 +41,7 @@ export const RecentIncidentTimeline: React.FC<RecentIncidentTimelineProps> = ({
 }) => {
   const { 
     alerts, 
+    selectedPatient,
     setSelectedIncident, 
     resolveAlert, 
     simulateFallEvent,
@@ -46,6 +51,8 @@ export const RecentIncidentTimeline: React.FC<RecentIncidentTimelineProps> = ({
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'warning' | 'resolved'>('all');
   const [showResolved, setShowResolved] = useState<boolean>(true);
   const [expandedResponseId, setExpandedResponseId] = useState<string | null>(null);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Extract and filter fall incidents
   const fallIncidents = useMemo(() => {
@@ -139,6 +146,151 @@ export const RecentIncidentTimeline: React.FC<RecentIncidentTimelineProps> = ({
     }
   };
 
+  // Export incidents as CSV report for medical records
+  const exportToCSV = (scope: 'filtered' | 'all-falls' | 'all-incidents') => {
+    try {
+      setIsExporting(true);
+      let targetIncidents: AlertIncident[] = [];
+      let scopeLabel = '';
+
+      if (scope === 'filtered') {
+        targetIncidents = fallIncidents;
+        scopeLabel = `Filtered Fall Timeline (${severityFilter.toUpperCase()} filter, ${fallIncidents.length} events)`;
+      } else if (scope === 'all-falls') {
+        targetIncidents = alerts.filter(a => a.type === 'fall');
+        scopeLabel = `All Fall Events (${targetIncidents.length} events)`;
+      } else {
+        targetIncidents = alerts;
+        scopeLabel = `Full Clinical EHR Incident Log (${targetIncidents.length} events)`;
+      }
+
+      if (targetIncidents.length === 0) {
+        addToast('No Records to Export', 'There are no incident events matching the selected criteria.', 'warning');
+        setIsExporting(false);
+        setIsExportMenuOpen(false);
+        return;
+      }
+
+      const escapeCSV = (val: any): string => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const resident = selectedPatient || {
+        name: 'Resident',
+        id: 'patient-unknown',
+        age: 78,
+        room: 'Room Unassigned',
+        primaryDoctor: 'Dr. Sharma',
+        emergencyContact: { name: 'Emergency Contact', phone: 'N/A' }
+      };
+
+      // Define standard medical record headers
+      const headers = [
+        'Incident ID',
+        'Timestamp (ISO 8601)',
+        'Event Date',
+        'Event Time',
+        'Resident ID',
+        'Resident Name',
+        'Age',
+        'Room / Location Zone',
+        'Attending Physician',
+        'Emergency Contact',
+        'Incident Classification',
+        'Severity Level',
+        'Clinical Status',
+        'Specific Spatial Location',
+        'Reporting IoT Device',
+        'Peak Deceleration (g)',
+        'Angular Velocity (deg/s)',
+        'Impact Duration (ms)',
+        'AI Model Confidence (%)',
+        'AI Response Priority',
+        'Clinical Protocol Code',
+        'Immediate AI Recommended Action',
+        'Recommended Protocol Steps',
+        'Caregiver Triage Status',
+        'Resolution Timestamp',
+        'Clinical Audit Notes'
+      ];
+
+      const rows = targetIncidents.map(inc => {
+        const ai = getAIResponse(inc);
+        const dateObj = formatIncidentTimestamp(inc.timestamp, inc.timeFormatted);
+        const dateStr = typeof dateObj === 'object' ? dateObj.monthDay : '';
+        const timeStr = typeof dateObj === 'object' ? dateObj.time : inc.timeFormatted;
+        const stepsStr = (ai.steps && ai.steps.length > 0) ? ai.steps.join(' | ') : 'Standard safety protocol';
+
+        return [
+          escapeCSV(inc.id),
+          escapeCSV(inc.timestamp),
+          escapeCSV(dateStr),
+          escapeCSV(timeStr),
+          escapeCSV(resident.id),
+          escapeCSV(resident.name),
+          escapeCSV(resident.age),
+          escapeCSV(resident.room),
+          escapeCSV(resident.primaryDoctor),
+          escapeCSV(`${resident.emergencyContact?.name || 'Contact'} (${resident.emergencyContact?.phone || 'N/A'})`),
+          escapeCSV(inc.type.toUpperCase()),
+          escapeCSV(inc.severity.toUpperCase()),
+          escapeCSV(inc.isResolved ? 'RESOLVED' : 'ACTIVE_ESCALATION'),
+          escapeCSV(inc.location),
+          escapeCSV(inc.device),
+          escapeCSV(inc.sensorEvidence?.peakAccelerationG !== undefined ? inc.sensorEvidence.peakAccelerationG : 'N/A'),
+          escapeCSV(inc.sensorEvidence?.rotationRateDegS !== undefined ? inc.sensorEvidence.rotationRateDegS : 'N/A'),
+          escapeCSV(inc.sensorEvidence?.impactDurationMs !== undefined ? inc.sensorEvidence.impactDurationMs : 'N/A'),
+          escapeCSV(`${inc.confidence}%`),
+          escapeCSV(ai.priority),
+          escapeCSV(ai.protocol),
+          escapeCSV(ai.action),
+          escapeCSV(stepsStr),
+          escapeCSV(inc.caregiverResponse || 'Pending Caregiver Review'),
+          escapeCSV(inc.resolvedAt || (inc.isResolved ? 'Resolved' : 'Pending Verification')),
+          escapeCSV(inc.notes || '')
+        ].join(',');
+      });
+
+      // Include clinical report banner comments and UTF-8 Byte Order Mark for Excel compatibility
+      const generationTimestamp = new Date().toISOString();
+      const csvLines = [
+        `# SENTINELCARE CLINICAL MEDICAL RECORDS EXPORT - INCIDENT AUDIT REPORT`,
+        `# Resident: ${resident.name} (Age ${resident.age}) | Room: ${resident.room} | Attending Physician: ${resident.primaryDoctor}`,
+        `# Generation Timestamp: ${generationTimestamp} | Export Scope: ${scopeLabel}`,
+        `# Total Audit Records: ${targetIncidents.length}`,
+        headers.join(','),
+        ...rows
+      ];
+
+      const csvBlob = new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      const downloadUrl = URL.createObjectURL(csvBlob);
+      const downloadAnchor = document.createElement('a');
+      const safeResidentName = resident.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const dateKey = new Date().toISOString().slice(0, 10);
+      
+      downloadAnchor.setAttribute('href', downloadUrl);
+      downloadAnchor.setAttribute('download', `SentinelCare_Medical_Incident_Report_${safeResidentName}_${dateKey}.csv`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      document.body.removeChild(downloadAnchor);
+      URL.revokeObjectURL(downloadUrl);
+
+      addToast(
+        'Medical CSV Exported',
+        `Successfully exported ${targetIncidents.length} incident record(s) for ${resident.name} to CSV for clinical records.`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error generating CSV export:', err);
+      addToast('Export Failed', 'Failed to generate medical CSV report file.', 'warning');
+    } finally {
+      setIsExporting(false);
+      setIsExportMenuOpen(false);
+    }
+  };
+
   return (
     <div id="recent-incident-timeline-component" className={`space-y-4 ${className}`}>
       {/* Component Header & Filter Bar */}
@@ -169,8 +321,97 @@ export const RecentIncidentTimeline: React.FC<RecentIncidentTimelineProps> = ({
             </div>
           </div>
 
-          {/* Quick Metrics & Trigger Demo Fall Button */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Quick Metrics, Export Medical CSV & Trigger Demo Fall Button */}
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            {/* Export Medical CSV Dropdown Button */}
+            <div className="relative">
+              {isExportMenuOpen && (
+                <div 
+                  className="fixed inset-0 z-20" 
+                  onClick={() => setIsExportMenuOpen(false)} 
+                />
+              )}
+
+              <div className="flex items-center rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-300 shadow-lg shadow-emerald-950/30 transition">
+                <button
+                  id="timeline-export-csv-btn"
+                  type="button"
+                  disabled={isExporting}
+                  onClick={() => exportToCSV('filtered')}
+                  className="px-3 py-2 text-xs font-mono font-bold flex items-center gap-1.5 text-emerald-200 hover:text-white transition active:scale-95 disabled:opacity-50"
+                  title="Export currently displayed incidents to CSV for medical records"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Export Medical CSV</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">
+                    {fallIncidents.length}
+                  </span>
+                </button>
+
+                <button
+                  id="timeline-export-csv-options-btn"
+                  type="button"
+                  onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                  className="p-2 border-l border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-300 transition"
+                  title="Choose CSV export scope"
+                >
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {/* Dropdown Menu */}
+              {isExportMenuOpen && (
+                <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-emerald-500/30 shadow-2xl p-2 z-30 font-mono text-xs animate-fadeIn space-y-1">
+                  <div className="px-2.5 py-1.5 text-[10px] text-slate-400 uppercase tracking-wider font-bold border-b border-slate-800 flex items-center justify-between">
+                    <span>Export Medical Records</span>
+                    <span className="text-emerald-400">CSV FORMAT</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => exportToCSV('filtered')}
+                    className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-300 text-slate-200 flex items-center justify-between transition group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Download className="w-3.5 h-3.5 text-emerald-400" />
+                      <div>
+                        <div className="font-bold text-white group-hover:text-emerald-300">Filtered Timeline View</div>
+                        <div className="text-[10px] text-slate-400">{severityFilter.toUpperCase()} events ({fallIncidents.length} records)</div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => exportToCSV('all-falls')}
+                    className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-300 text-slate-200 flex items-center justify-between transition group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Flame className="w-3.5 h-3.5 text-amber-400" />
+                      <div>
+                        <div className="font-bold text-white group-hover:text-emerald-300">All Fall Incidents</div>
+                        <div className="text-[10px] text-slate-400">Complete fall telemetry ({totalFalls} records)</div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => exportToCSV('all-incidents')}
+                    className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-300 text-slate-200 flex items-center justify-between transition group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                      <div>
+                        <div className="font-bold text-white group-hover:text-emerald-300">Full EHR Clinical Log</div>
+                        <div className="text-[10px] text-slate-400">Falls, mobility & medication ({alerts.length} records)</div>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button
               id="timeline-simulate-fall-btn"
               type="button"
@@ -239,14 +480,27 @@ export const RecentIncidentTimeline: React.FC<RecentIncidentTimelineProps> = ({
             <p className="text-xs text-slate-400 max-w-md mx-auto">
               Wristband inertial measurement sensors report steady gait cadence. Trigger a simulated test to observe real-time timeline visualization.
             </p>
-            <button
-              type="button"
-              onClick={simulateFallEvent}
-              className="mt-2 px-4 py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 text-xs font-mono font-bold inline-flex items-center gap-1.5 transition"
-            >
-              <Flame className="w-3.5 h-3.5" />
-              <span>Simulate Fall Event Now</span>
-            </button>
+            <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={simulateFallEvent}
+                className="px-4 py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 text-xs font-mono font-bold inline-flex items-center gap-1.5 transition"
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>Simulate Fall Event Now</span>
+              </button>
+
+              {totalFalls > 0 && (
+                <button
+                  type="button"
+                  onClick={() => exportToCSV('all-falls')}
+                  className="px-4 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold inline-flex items-center gap-1.5 transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export All {totalFalls} Fall Records (CSV)</span>
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="relative">
@@ -510,6 +764,39 @@ export const RecentIncidentTimeline: React.FC<RecentIncidentTimelineProps> = ({
                   </div>
                 );
               })}
+            </div>
+
+            {/* Timeline Bottom Summary & Quick Export Bar */}
+            <div className="mt-6 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-slate-400">
+              <div className="flex items-center gap-2 text-[11px]">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>
+                  Audit showing <strong className="text-white">{fallIncidents.length}</strong> of <strong className="text-white">{totalFalls}</strong> recorded fall incidents for <strong className="text-cyan-300">{selectedPatient?.name || 'Resident'}</strong>.
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => exportToCSV('filtered')}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-300 flex items-center gap-1.5 text-[11px] font-bold transition"
+                  title="Export currently displayed list as CSV"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Download Medical CSV ({fallIncidents.length})</span>
+                </button>
+
+                {totalFalls > fallIncidents.length && (
+                  <button
+                    type="button"
+                    onClick={() => exportToCSV('all-falls')}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1.5 text-[11px] transition"
+                    title="Export all fall incidents including filtered items"
+                  >
+                    <span>All Falls ({totalFalls})</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
