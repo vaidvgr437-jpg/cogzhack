@@ -110,6 +110,13 @@ export interface AlertIncident {
     snapshotUrl?: string;
   };
   caregiverResponse: string;
+  aiRecommendedResponse?: {
+    action: string;
+    protocol: string;
+    priority: 'IMMEDIATE' | 'HIGH' | 'MODERATE' | 'STANDARD';
+    targetTime: string;
+    steps?: string[];
+  };
   notificationStatus: string;
   escalationStages: {
     buzzer: boolean;

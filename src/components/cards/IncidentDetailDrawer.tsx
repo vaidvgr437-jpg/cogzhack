@@ -12,7 +12,9 @@ import {
   PhoneCall, 
   Send,
   Camera,
-  Scale
+  Scale,
+  Sparkles,
+  CornerDownRight
 } from 'lucide-react';
 
 export const IncidentDetailDrawer: React.FC = () => {
@@ -134,6 +136,43 @@ export const IncidentDetailDrawer: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Immediate AI-Recommended Response */}
+          {selectedIncident.aiRecommendedResponse && (
+            <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-950 border border-cyan-500/30">
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-300 uppercase">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <span>Immediate AI-Recommended Response</span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-red-600/30 text-red-300 border border-red-500/40">
+                  {selectedIncident.aiRecommendedResponse.priority}
+                </span>
+              </div>
+
+              <div className="mt-2 text-xs text-white leading-relaxed flex items-start gap-2">
+                <CornerDownRight className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                <span>{selectedIncident.aiRecommendedResponse.action}</span>
+              </div>
+
+              <div className="mt-2 text-[11px] font-mono text-cyan-400 flex items-center justify-between">
+                <span>Protocol: {selectedIncident.aiRecommendedResponse.protocol}</span>
+                <span className="text-slate-400">Target SLA: {selectedIncident.aiRecommendedResponse.targetTime}</span>
+              </div>
+
+              {selectedIncident.aiRecommendedResponse.steps && selectedIncident.aiRecommendedResponse.steps.length > 0 && (
+                <div className="mt-2.5 pt-2 border-t border-slate-800 space-y-1">
+                  <div className="text-[10px] font-mono text-slate-400 uppercase">Recommended Sequence:</div>
+                  {selectedIncident.aiRecommendedResponse.steps.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-1.5 text-[11px] font-mono text-slate-300">
+                      <span className="text-cyan-400 font-bold">{idx + 1}.</span>
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Escalation Stage Progression */}
           <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">

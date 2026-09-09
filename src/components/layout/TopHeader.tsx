@@ -16,7 +16,8 @@ import {
   WifiOff,
   Activity,
   LogOut,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 
 interface TopHeaderProps {
@@ -29,6 +30,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
     setSelectedPatient,
     patientsList,
     navigateTo,
+    openDeletePatientModal,
     systemTime,
     lastSyncSecondsAgo,
     activeScenario,
@@ -123,26 +125,49 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onToggleMobileSidebar }) =
                   <span className="text-cyan-400 font-bold">{patientsList.length}</span>
                 </div>
                 <div className="space-y-1 mt-1 max-h-56 overflow-y-auto">
-                  {patientsList.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        setSelectedPatient(p);
-                        setIsPatientDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left text-xs transition ${
-                        selectedPatient.id === p.id
-                          ? 'bg-cyan-500/20 text-cyan-200 font-bold border border-cyan-500/40'
-                          : 'text-slate-300 hover:bg-slate-800/60'
-                      }`}
-                    >
-                      <img src={p.avatar} alt={p.name} className="w-7 h-7 rounded-lg object-cover" />
-                      <div className="flex flex-col overflow-hidden">
-                        <span className="truncate">{p.name} ({p.age}y)</span>
-                        <span className="text-[10px] font-mono text-slate-400 truncate">{p.room}</span>
+                  {patientsList.map((p) => {
+                    const isSelected = selectedPatient.id === p.id;
+                    return (
+                      <div
+                        key={p.id}
+                        className={`group w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition ${
+                          isSelected
+                            ? 'bg-cyan-500/20 text-cyan-200 font-bold border border-cyan-500/40'
+                            : 'text-slate-300 hover:bg-slate-800/60'
+                        }`}
+                      >
+                        {/* Resident Clickable Info */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedPatient(p);
+                            setIsPatientDropdownOpen(false);
+                          }}
+                          className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
+                        >
+                          <img src={p.avatar} alt={p.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                          <div className="flex flex-col overflow-hidden">
+                            <span className="truncate">{p.name} ({p.age}y)</span>
+                            <span className="text-[10px] font-mono text-slate-400 truncate">{p.room}</span>
+                          </div>
+                        </button>
+
+                        {/* Remove Patient Button */}
+                        <button
+                          type="button"
+                          title={`Remove ${p.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsPatientDropdownOpen(false);
+                            openDeletePatientModal(p);
+                          }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/15 transition shrink-0 ml-1.5 opacity-60 group-hover:opacity-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Dropdown Footer: Add Patient Action */}

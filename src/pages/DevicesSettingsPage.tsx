@@ -17,19 +17,31 @@ import {
   Flame,
   Zap,
   Activity,
-  WifiOff
+  WifiOff,
+  Trash2,
+  Plus,
+  Users,
+  UserMinus
 } from 'lucide-react';
 import { DemoScenario } from '../types';
 
 export const DevicesSettingsPage: React.FC = () => {
   const { 
     devices, 
-    runDeviceDiagnostics, 
     selectedPatient, 
+    setSelectedPatient,
+    patientsList,
+    openDeletePatientModal,
+    navigateTo,
+    addToast,
     activeScenario, 
     setScenario, 
     simulateFallEvent 
   } = useDashboard();
+
+  const runDeviceDiagnostics = (deviceId: string) => {
+    addToast('Diagnostic Signal Sent', `Pinged device ${deviceId}. Packet loss 0%, RF link verified.`, 'success');
+  };
 
   const [fallSensitivity, setFallSensitivity] = useState<'low' | 'medium' | 'high'>('medium');
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -349,6 +361,127 @@ export const DevicesSettingsPage: React.FC = () => {
             <div className="text-slate-400 text-[10px] uppercase mb-1">Escalation Routing Rule:</div>
             If buzzer is not cancelled within 30 seconds, SMS and automated voice messages are routed directly to <strong className="text-white">Ananya Rao</strong> and secondary caregiver Rahul.
           </div>
+        </div>
+      </div>
+
+      {/* Enrolled Residents & Patient Profile Management */}
+      <div className="p-5 sm:p-6 rounded-2xl glass-panel border border-cyan-500/20 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                Enrolled Residents & Active Profiles
+                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  {patientsList.length} Active
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Manage assigned elderly residents, switch active telemonitoring view, or unbind profiles
+              </p>
+            </div>
+          </div>
+
+          <button
+            id="settings-add-patient-btn"
+            type="button"
+            onClick={() => navigateTo('/patient/setup')}
+            className="px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold flex items-center justify-center gap-2 transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Enroll New Resident</span>
+          </button>
+        </div>
+
+        {/* Residents Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+          {patientsList.map((patient) => {
+            const isSelected = selectedPatient.id === patient.id;
+
+            return (
+              <div
+                key={patient.id}
+                className={`p-4 rounded-2xl border transition flex flex-col justify-between gap-4 ${
+                  isSelected
+                    ? 'border-cyan-400 bg-cyan-950/30 shadow-lg shadow-cyan-500/10'
+                    : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={patient.avatar}
+                        alt={patient.name}
+                        className="w-12 h-12 rounded-xl object-cover border border-cyan-500/30 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-sm font-bold text-white truncate">{patient.name}</h4>
+                          <span className="text-xs font-mono text-slate-400 shrink-0">({patient.age}y)</span>
+                        </div>
+                        <p className="text-xs font-mono text-cyan-400 truncate">{patient.room}</p>
+                      </div>
+                    </div>
+
+                    {isSelected ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
+                        ACTIVE
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPatient(patient)}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-mono text-slate-400 hover:text-cyan-300 bg-slate-800 hover:bg-slate-700 transition shrink-0"
+                      >
+                        Select
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-1 text-xs font-mono text-slate-400">
+                    <div className="flex justify-between items-center text-[11px]">
+                      <span>Doctor:</span>
+                      <span className="text-slate-300 truncate max-w-[160px]">{patient.primaryDoctor}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px]">
+                      <span>Emergency:</span>
+                      <span className="text-slate-300 truncate max-w-[160px]">
+                        {patient.emergencyContact.name} ({patient.emergencyContact.phone})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Actions */}
+                <div className="flex items-center gap-2 pt-2">
+                  {!isSelected && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPatient(patient)}
+                      className="flex-1 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold transition text-center"
+                    >
+                      Set Active
+                    </button>
+                  )}
+                  
+                  <button
+                    type="button"
+                    title={`Remove ${patient.name}`}
+                    onClick={() => openDeletePatientModal(patient)}
+                    className={`py-1.5 px-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/20 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition ${
+                      isSelected ? 'w-full' : ''
+                    }`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Remove Resident</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

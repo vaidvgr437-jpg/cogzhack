@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import { IncidentDetailDrawer } from '../components/cards/IncidentDetailDrawer';
+import { RecentIncidentTimeline } from '../components/cards/RecentIncidentTimeline';
 import { 
   ShieldAlert, 
   AlertTriangle, 
@@ -136,6 +137,9 @@ export const AlertsIncidentsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Recent Incident Timeline Component */}
+      <RecentIncidentTimeline />
 
       {/* Escalation Architecture Pipeline Infographic */}
       <div className="p-5 rounded-2xl glass-panel border border-cyan-500/20">

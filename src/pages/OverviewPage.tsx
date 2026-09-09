@@ -17,7 +17,9 @@ import {
   Sparkles,
   ChevronRight,
   ShieldAlert,
-  AlertTriangle
+  AlertTriangle,
+  Trash2,
+  Plus
 } from 'lucide-react';
 
 export const OverviewPage: React.FC = () => {
@@ -31,7 +33,9 @@ export const OverviewPage: React.FC = () => {
     setActiveTab, 
     isEmergencyActive,
     activeScenario,
-    simulateFallEvent 
+    simulateFallEvent,
+    openDeletePatientModal,
+    navigateTo
   } = useDashboard();
 
   const verifiedMedsCount = medications.filter(m => m.status === 'verified').length;
@@ -83,7 +87,18 @@ export const OverviewPage: React.FC = () => {
         </div>
 
         {/* Right CTA / Quick Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <button
+            id="overview-remove-patient-btn"
+            type="button"
+            onClick={() => openDeletePatientModal(selectedPatient)}
+            className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-red-500/15 text-slate-400 hover:text-red-400 border border-slate-800 hover:border-red-500/40 text-xs font-mono font-semibold flex items-center gap-1.5 transition"
+            title={`Remove ${selectedPatient.name} from monitoring`}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Remove</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('monitoring')}
             className="px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-semibold flex items-center gap-1.5 transition"

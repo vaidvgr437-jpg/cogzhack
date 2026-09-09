@@ -37,6 +37,11 @@ interface DashboardContextType {
   patientsList: ElderlyPerson[];
   setPatientsList: React.Dispatch<React.SetStateAction<ElderlyPerson[]>>;
   addPatient: (patient: ElderlyPerson) => void;
+  removePatient: (patientId: string) => void;
+  patientToDelete: ElderlyPerson | null;
+  setPatientToDelete: (patient: ElderlyPerson | null) => void;
+  openDeletePatientModal: (patient: ElderlyPerson) => void;
+  closeDeletePatientModal: () => void;
 
   // Routing
   currentRoute: string;
@@ -235,6 +240,48 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
     setSelectedPatient(newPatient);
     addToast('Patient Registered', `${newPatient.name} has been enrolled in SentinelCare monitoring.`, 'success');
+  }, [addToast]);
+
+  const [patientToDelete, setPatientToDelete] = useState<ElderlyPerson | null>(null);
+
+  const openDeletePatientModal = useCallback((patient: ElderlyPerson) => {
+    setPatientToDelete(patient);
+  }, []);
+
+  const closeDeletePatientModal = useCallback(() => {
+    setPatientToDelete(null);
+  }, []);
+
+  const removePatient = useCallback((patientId: string) => {
+    let removedName = '';
+    setPatientsList(prev => {
+      const target = prev.find(p => p.id === patientId);
+      if (target) {
+        removedName = target.name;
+      }
+      const updated = prev.filter(p => p.id !== patientId);
+      try {
+        localStorage.setItem('sentinel_patients', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+
+      // If removed patient was currently selected, pick first remaining or fallback to PRIMARY_PATIENT
+      setSelectedPatient(curr => {
+        if (curr.id === patientId) {
+          return updated.length > 0 ? updated[0] : PRIMARY_PATIENT;
+        }
+        return curr;
+      });
+
+      return updated;
+    });
+
+    if (removedName) {
+      addToast('Patient Removed', `${removedName} has been removed from active monitoring.`, 'info');
+    } else {
+      addToast('Patient Removed', 'Patient has been removed from active monitoring.', 'info');
+    }
   }, [addToast]);
 
   const login = useCallback((emailOrUsername: string, password: string): boolean => {
@@ -614,6 +661,18 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         snapshotUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400&auto=format&fit=crop&q=80'
       },
       caregiverResponse: 'Emergency workflow initiated. Escalation timer counting.',
+      aiRecommendedResponse: {
+        action: 'CRITICAL: Initiate instant 2-way audio verification through Sentinel Hub speaker. If no voice acknowledgment within 30s, automatically dispatch EMS and notify emergency contact.',
+        protocol: 'Acute Severe Deceleration Protocol (Alpha-EMS Escalation)',
+        priority: 'IMMEDIATE',
+        targetTime: '< 30 seconds',
+        steps: [
+          'Sound immediate 85dB pulse buzzer on resident smart wristband',
+          'Open live bi-directional speaker channel on Home Hub Gateway',
+          'Stream continuous heart rate & ECG telemetry to caregiver console',
+          'Dispatch automated voice call to emergency contact Ananya Rao (+91 98450) if unresponsive'
+        ]
+      },
       notificationStatus: 'Escalating (Buzzer ➔ Push ➔ SMS)',
       escalationStages: {
         buzzer: true,
@@ -699,6 +758,11 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       patientsList,
       setPatientsList,
       addPatient,
+      removePatient,
+      patientToDelete,
+      setPatientToDelete,
+      openDeletePatientModal,
+      closeDeletePatientModal,
       currentRoute,
       navigateTo,
       activeScenario,

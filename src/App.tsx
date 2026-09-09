@@ -10,6 +10,7 @@ import { TopHeader } from './components/layout/TopHeader';
 import { NotificationCenter } from './components/layout/NotificationCenter';
 import { SearchModal } from './components/layout/SearchModal';
 import { EmergencyModal } from './components/layout/EmergencyModal';
+import { RemovePatientModal } from './components/layout/RemovePatientModal';
 import { ToastContainer } from './components/layout/ToastContainer';
 
 // Pages
@@ -99,6 +100,7 @@ const MainLayout: React.FC = () => {
       <NotificationCenter />
       <SearchModal />
       <EmergencyModal />
+      <RemovePatientModal />
       <ToastContainer />
     </div>
   );

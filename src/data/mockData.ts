@@ -149,11 +149,11 @@ export const INITIAL_MEDICATIONS: MedicationCompartment[] = [
 export const INITIAL_ALERTS: AlertIncident[] = [
   {
     id: 'inc-01',
-    title: 'Possible fall event detected & safely stabilized',
-    description: 'Sudden deceleration (3.4g) and horizontal orientation detected by wristband in Living Room near balcony threshold. Patient recovered posture within 12 seconds.',
+    title: 'Acute Fall Event & Deceleration Trigger',
+    description: 'Sudden deceleration (3.42g) and horizontal orientation detected by wristband in Living Room near balcony threshold. Patient recovered posture within 12 seconds.',
     severity: 'critical',
     type: 'fall',
-    timestamp: '2026-08-20T02:34:00',
+    timestamp: '2026-08-20T14:34:00',
     timeFormatted: '02:34 PM Today',
     location: 'Living Room / Balcony Threshold',
     device: 'ESP32 Smart Wristband (MPU6050)',
@@ -165,6 +165,17 @@ export const INITIAL_ALERTS: AlertIncident[] = [
       snapshotUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400&auto=format&fit=crop&q=80'
     },
     caregiverResponse: 'Caregiver contacted via phone. Patient confirmed stumbling slightly on rug, uninjured.',
+    aiRecommendedResponse: {
+      action: 'Initiate immediate 2-way audio prompt through Sentinel Hub. Verify posture stabilization and request vocal confirmation of comfort.',
+      protocol: 'Acute Deceleration Protocol (Alpha-Fall Trigger > 3.0g)',
+      priority: 'IMMEDIATE',
+      targetTime: '< 30 seconds',
+      steps: [
+        'Sound 85dB alert pulse on wristband to assess resident awareness',
+        'Open two-way intercom audio channel through Living Room Hub',
+        'Confirm standing stability; if unacknowledged within 45s, escalate to emergency contact'
+      ]
+    },
     notificationStatus: 'Delivered (Push + SMS)',
     escalationStages: {
       buzzer: true,
@@ -174,6 +185,82 @@ export const INITIAL_ALERTS: AlertIncident[] = [
     },
     isResolved: false,
     notes: 'Suggested removing small accent rug near living room entrance.'
+  },
+  {
+    id: 'inc-fall-02',
+    title: 'Bedside Nighttime Tilt & Sudden Stumble',
+    description: '2.84g lateral acceleration spike recorded at 03:18 AM during transfer from bed to walking frame. Posture recovered after 8 seconds.',
+    severity: 'warning',
+    type: 'fall',
+    timestamp: '2026-08-20T03:18:22',
+    timeFormatted: '03:18 AM Today',
+    location: 'Master Bedroom / Bedside',
+    device: 'ESP32 Smart Wristband (MPU6050)',
+    confidence: 89,
+    sensorEvidence: {
+      peakAccelerationG: 2.84,
+      rotationRateDegS: 215,
+      impactDurationMs: 95
+    },
+    caregiverResponse: 'Night caregiver dispatched; assisted resident back to bed safely.',
+    aiRecommendedResponse: {
+      action: 'Check nocturnal ambient lighting pathway and inspect bedside motion sensor calibration to eliminate low-light disorientation.',
+      protocol: 'Nocturnal Sit-to-Stand Deviation Protocol (Night Transfer)',
+      priority: 'HIGH',
+      targetTime: '< 2 minutes',
+      steps: [
+        'Verify nightlight illumination along the pathway from bed to bathroom',
+        'Confirm walking frame proximity within reach of bedside edge',
+        'Review orthostatic blood pressure check with attending physician'
+      ]
+    },
+    notificationStatus: 'Delivered (Night Alert Mode)',
+    escalationStages: {
+      buzzer: true,
+      push: true,
+      sms: false,
+      call: false
+    },
+    isResolved: true,
+    resolvedAt: '03:24 AM'
+  },
+  {
+    id: 'inc-fall-03',
+    title: 'Bathroom Wet Zone Slip & Grip Bar Catch',
+    description: '3.15g rotational angular velocity spike with rapid vertical axis displacement. Resident grabbed grab bar, preventing full recumbent impact.',
+    severity: 'warning',
+    type: 'fall',
+    timestamp: '2026-08-19T18:45:00',
+    timeFormatted: 'Yesterday 06:45 PM',
+    location: 'Bathroom / Shower Entrance',
+    device: 'ESP32 Smart Wristband (MPU6050)',
+    confidence: 91,
+    sensorEvidence: {
+      peakAccelerationG: 3.15,
+      rotationRateDegS: 260,
+      impactDurationMs: 120
+    },
+    caregiverResponse: 'Checked resident condition. Floor dried and non-slip rubber mat repositioned.',
+    aiRecommendedResponse: {
+      action: 'Inspect bathroom moisture barrier, ensure non-slip textured mat is firmly anchored, and evaluate anti-skid socks.',
+      protocol: 'Wet Zone Slip Mitigation Protocol (Bathroom)',
+      priority: 'HIGH',
+      targetTime: '< 5 minutes',
+      steps: [
+        'Inspect suction grip on bathroom anti-slip safety mat',
+        'Check resident footwear traction suitability',
+        'Log event to physical therapy fall risk assessment record'
+      ]
+    },
+    notificationStatus: 'Delivered (Push + Caregiver Log)',
+    escalationStages: {
+      buzzer: true,
+      push: true,
+      sms: false,
+      call: false
+    },
+    isResolved: true,
+    resolvedAt: 'Yesterday 06:52 PM'
   },
   {
     id: 'inc-02',
